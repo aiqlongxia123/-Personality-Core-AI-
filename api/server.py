@@ -1,5 +1,7 @@
 """FastAPI 人格AI系统接口"""
-from fastapi import FastAPI, HTTPException, Query, Body
+import os
+from fastapi import FastAPI, HTTPException, Query, Body, Depends
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import uuid
@@ -8,6 +10,24 @@ import uvicorn
 
 from personality_core.engine import PersonalityEngine
 from personality_core.config import get_config
+
+
+# ═══════════════ API 鉴权 ═══════════════
+
+API_KEY = os.getenv("PERSONALITY_API_KEY", "")
+if not API_KEY:
+    raise RuntimeError(
+        "环境变量 PERSONALITY_API_KEY 未设置，请配置后启动服务。"
+    )
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def validate_api_key(api_key: str | None = Depends(api_key_header)):
+    """验证 X-API-Key 请求头"""
+    if api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid or missing API Key")
+    return api_key
 
 
 app = FastAPI(
@@ -125,30 +145,30 @@ def _validate_indices(eng: PersonalityEngine, a: int, b: int, label: str):
 # ═══════════════ API 端点 ═══════════════
 
 @app.get("/")
-async def root():
+async def root(_auth: str = Depends(validate_api_key)):
     return {"message": "Personality Core API", "version": "0.1.1"}
 
 
 @app.post("/embed")
-async def embed_text(req: EmbedRequest):
+async def embed_text(req: EmbedRequest, _auth: str = Depends(validate_api_key)):
     eng = get_engine()
     return eng.embed(req.text)
 
 
 @app.get("/factors")
-async def list_factors():
+async def list_factors(_auth: str = Depends(validate_api_key)):
     eng = get_engine()
     return eng.ica.get_factor_labels()
 
 
 @app.get("/clusters")
-async def list_clusters():
+async def list_clusters(_auth: str = Depends(validate_api_key)):
     eng = get_engine()
     return eng.archetypes
 
 
 @app.post("/morph")
-async def morph_personality(req: MorphRequest):
+async def morph_personality(req: MorphRequest, _auth: str = Depends(validate_api_key)):
     eng = get_engine()
     if eng.factor_scores is None:
         raise HTTPException(status_code=400, detail="引擎未训练")
@@ -168,27 +188,27 @@ async def morph_personality(req: MorphRequest):
 
 
 @app.post("/score")
-async def score_pairing(req: ScoreRequest):
+async def score_pairing(req: ScoreRequest, _auth: str = Depends(validate_api_key)):
     eng = get_engine()
     _validate_indices(eng, req.index_a, req.index_b, "score")
     return eng.score_pairing(req.index_a, req.index_b)
 
 
 @app.post("/compare")
-async def compare_personalities(req: CompareRequest):
+async def compare_personalities(req: CompareRequest, _auth: str = Depends(validate_api_key)):
     eng = get_engine()
     _validate_indices(eng, req.index_a, req.index_b, "compare")
     return eng.compare(req.index_a, req.index_b)
 
 
 @app.get("/atlas")
-async def get_atlas():
+async def get_atlas(_auth: str = Depends(validate_api_key)):
     eng = get_engine()
     return eng.get_atlas_2d()
 
 
 @app.post("/interact")
-async def interact(req: InteractRequest):
+async def interact(req: InteractRequest, _auth: str = Depends(validate_api_key)):
     eng = get_engine()
     # 验证 archetype_index 是否合法
     if req.archetype_index < 0 or req.archetype_index >= len(eng.archetypes):
@@ -204,7 +224,7 @@ async def interact(req: InteractRequest):
 
 
 @app.post("/chat")
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, _auth: str = Depends(validate_api_key)):
     """LLM 对话接口（需 Ollama 运行中）"""
     eng = get_engine()
     if req.archetype_index < 0 or req.archetype_index >= len(eng.archetypes):
@@ -227,8 +247,9 @@ async def chat(req: ChatRequest):
 @app.post("/train")
 async def train_from_descriptions(
     texts: List[str] = Body(..., min_length=1, max_length=200),
+    _auth: str = Depends(validate_api_key),
 ):
-    """从文本列表重新训练（仅限本地使用，无认证）"""
+    """从文本列表重新训练（仅限本地使用）"""
     global engine
     if engine is None:
         engine = PersonalityEngine()

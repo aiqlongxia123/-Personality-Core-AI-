@@ -1,9 +1,13 @@
 """测试：FastAPI 接口 + Morph→trait 闭环"""
 import json
+import os
 import sys
 from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
+
+# 设置环境变量，防止 server.py 启动时拒绝
+os.environ.setdefault("PERSONALITY_API_KEY", "test-key")
 
 # 确保 src 在路径中
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -12,55 +16,62 @@ from api.server import app
 from personality_core.engine import PersonalityEngine, PersonaProfile, BUILTIN_PERSONAS
 from personality_core.config import get_config
 
+API_KEY = "test-key"
+HEADERS = {"X-API-Key": API_KEY}
+
 
 @pytest.fixture
 def api_client(test_data):
     """返回已初始化的 TestClient（会话级复用）"""
     # 触发 startup 事件
     with TestClient(app) as client:
-        client.get("/")
+        client.get("/", headers=HEADERS)
         yield client
 
 
 class TestAPIRoot:
     def test_root(self, api_client):
-        r = api_client.get("/")
+        r = api_client.get("/", headers=HEADERS)
         assert r.status_code == 200
         assert r.json()["message"] == "Personality Core API"
+
+    def test_root_without_key_fails(self, api_client):
+        r = api_client.get("/")
+        assert r.status_code == 403
 
 
 class TestAPIEmbed:
     def test_embed_text(self, api_client):
-        r = api_client.post("/embed", json={"text": "一个冷静理性的人"})
+        r = api_client.post("/embed", json={"text": "一个冷静理性的人"}, headers=HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "cluster_id" in data
         assert len(data["factor_scores"]) == 5
 
     def test_embed_empty_fails(self, api_client):
-        r = api_client.post("/embed", json={"text": ""})
+        r = api_client.post("/embed", json={"text": ""}, headers=HEADERS)
         assert r.status_code == 422
 
     def test_embed_too_long_fails(self, api_client):
-        r = api_client.post("/embed", json={"text": "x" * 2001})
+        r = api_client.post("/embed", json={"text": "x" * 2001}, headers=HEADERS)
         assert r.status_code == 422
 
 
 class TestAPIScore:
     def test_score_pairing(self, api_client):
-        r = api_client.post("/score", json={"index_a": 0, "index_b": 1})
+        r = api_client.post("/score", json={"index_a": 0, "index_b": 1}, headers=HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "similarity" in data
 
     def test_score_oob_fails(self, api_client):
-        r = api_client.post("/score", json={"index_a": 0, "index_b": 99999})
+        r = api_client.post("/score", json={"index_a": 0, "index_b": 99999}, headers=HEADERS)
         assert r.status_code == 400
 
 
 class TestAPICompare:
     def test_compare(self, api_client):
-        r = api_client.post("/compare", json={"index_a": 0, "index_b": 1})
+        r = api_client.post("/compare", json={"index_a": 0, "index_b": 1}, headers=HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "dimensions" in data
@@ -69,18 +80,18 @@ class TestAPICompare:
 
 class TestAPIMorph:
     def test_morph(self, api_client):
-        r = api_client.post("/morph", json={"seed_index": 0, "direction_index": 0, "angle_deg": 30})
+        r = api_client.post("/morph", json={"seed_index": 0, "direction_index": 0, "angle_deg": 30}, headers=HEADERS)
         assert r.status_code == 200
         assert r.json()["result_embedding_dim"] == 384
 
     def test_morph_oob_angle(self, api_client):
-        r = api_client.post("/morph", json={"seed_index": 0, "direction_index": 0, "angle_deg": 999})
+        r = api_client.post("/morph", json={"seed_index": 0, "direction_index": 0, "angle_deg": 999}, headers=HEADERS)
         assert r.status_code == 422
 
 
 class TestAPIInteractChat:
     def test_interact(self, api_client):
-        r = api_client.post("/interact", json={"user_input": "你好", "archetype_index": 0})
+        r = api_client.post("/interact", json={"user_input": "你好", "archetype_index": 0}, headers=HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "mood" in data
@@ -90,20 +101,20 @@ class TestAPIInteractChat:
         """不同 session_id 应使用独立记忆"""
         r1 = api_client.post("/interact", json={
             "user_input": "A的记忆", "archetype_index": 0, "session_id": "sess_a",
-        })
+        }, headers=HEADERS)
         r2 = api_client.post("/interact", json={
             "user_input": "B的记忆", "archetype_index": 0, "session_id": "sess_b",
-        })
+        }, headers=HEADERS)
         assert r1.status_code == 200
         assert r2.status_code == 200
 
     def test_interact_invalid_cluster(self, api_client):
-        r = api_client.post("/interact", json={"user_input": "你好", "archetype_index": 999})
+        r = api_client.post("/interact", json={"user_input": "你好", "archetype_index": 999}, headers=HEADERS)
         assert r.status_code == 400  # IndexError 转为 400
 
     def test_chat(self, api_client):
         """测试聊天接口（Ollama 可能未运行，但接口应正常响应）"""
-        r = api_client.post("/chat", json={"user_input": "你好", "archetype_index": 0})
+        r = api_client.post("/chat", json={"user_input": "你好", "archetype_index": 0}, headers=HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "response" in data
@@ -111,7 +122,7 @@ class TestAPIInteractChat:
 
 class TestAPITrain:
     def test_train_endpoint(self, api_client):
-        r = api_client.post("/train", json=["冷静", "热情", "温柔", "尖锐", "神秘"])
+        r = api_client.post("/train", json=["冷静", "热情", "温柔", "尖锐", "神秘"], headers=HEADERS)
         assert r.status_code == 200
         assert r.json()["samples"] == 5
 

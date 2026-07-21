@@ -88,9 +88,16 @@ python ui/gradio_app.py
 ### 启动 API 服务
 
 ```bash
+# 必须先设置 API Key（否则启动失败）
+set PERSONALITY_API_KEY=<your-secret-key>    # Windows CMD
+$env:PERSONALITY_API_KEY="<your-secret-key>" # PowerShell
+export PERSONALITY_API_KEY="<your-secret-key>" # Linux/macOS
+
 python api/server.py
 # 访问 http://localhost:8000/docs
 ```
+
+所有 API 端点均需要 `X-API-Key` 请求头鉴权。
 
 ### 接入 LLM 对话
 
@@ -101,6 +108,13 @@ ollama serve
 ```
 
 然后运行 demo，会自动调用本地模型生成人格化回复。
+
+## 🔒 安全说明
+
+- **API 鉴权**：所有 `/api/` 端点强制要求 `X-API-Key` 请求头，未配置环境变量时服务拒绝启动。
+- **Prompt 注入防御**：`chat` 接口内置越狱检测，拦截尝试覆盖系统人格的输入。
+- **向量钳制**：Morph 操作自动限制角度和旋转向量模长，防止数值溢出。
+- **依赖锁定**：使用 `requirements-lock.txt` 冻结全部依赖版本，部署时务必以此安装。
 
 ## 📐 技术架构
 

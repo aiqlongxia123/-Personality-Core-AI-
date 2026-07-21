@@ -2,6 +2,19 @@
 import numpy as np
 
 
+MAX_MORPH_NORM = 1.5  # 限制旋转向量最大模长，防止数值溢出
+MAX_ANGLE_DEG = 90.0
+
+
+def _clamp_vector(vector: np.ndarray, max_norm: float = MAX_MORPH_NORM) -> np.ndarray:
+    """将向量模长钳制到安全范围"""
+    norm = np.linalg.norm(vector)
+    if norm > max_norm:
+        print(f"[Morph警告] 检测到超限旋转向量 (norm={norm:.4f})，已自动截断至 {max_norm}")
+        vector = vector / norm * max_norm
+    return vector
+
+
 def morph_vector(
     seed: np.ndarray,
     direction: np.ndarray,
@@ -10,20 +23,17 @@ def morph_vector(
     """
     在单位球面上将 seed 向 direction 的**正交分量**旋转 angle_deg 度。
 
-    正确实现：
-    1. 归一化 seed
-    2. 将 direction 分解为平行分量 + 正交分量
-    3. 使用正交分量作为旋转轴
-    4. seed * cos(θ) + direction_orthogonal * sin(θ)
-
-    角度参考：
-      0°  = seed不变 (cos=1.00)
-     15°  = 微妙偏移 (cos=0.97)
-     30°  = 轻度变形 (cos=0.87)
-     45°  = 均衡混合 (cos=0.71)
-     60°  = 强烈变形 (cos=0.50)
-     90°  = 完全正交 (cos=0)
+    安全钳制：
+    - angle_deg 限制在 [0, MAX_ANGLE_DEG]
+    - direction 向量模长钳制到 MAX_MORPH_NORM
+    - 结果始终归一化，防止数值膨胀
     """
+    # 钳制角度
+    angle_deg = max(0.0, min(angle_deg, MAX_ANGLE_DEG))
+
+    # 钳制旋转向量模长
+    direction = _clamp_vector(direction)
+
     angle_rad = np.radians(angle_deg)
     cos_a = np.cos(angle_rad)
     sin_a = np.sin(angle_rad)

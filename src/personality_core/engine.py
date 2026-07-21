@@ -563,8 +563,11 @@ class PersonalityEngine:
         if self.emotion_core is None or self.memory_engine is None:
             raise RuntimeError("请先调用 initialize_agent() 初始化人格")
 
+        # ── Prompt 注入防御 ──
+        sanitized = self._sanitize_user_input(user_input)
+
         # ── 安全策略检查（优先级最高） ──
-        safety = self.safety_policy.evaluate_input(user_input)
+        safety = self.safety_policy.evaluate_input(sanitized)
 
         if safety["insult_detected"]:
             return safety["insult_detected"]
@@ -590,7 +593,7 @@ class PersonalityEngine:
         safety_prefix = self.safety_policy.get_safety_prefix()
         system_prompt = safety_prefix + "\n\n" + system_prompt
 
-        response = self.llm_engine.chat(system_prompt, user_input, context)
+        response = self.llm_engine.chat(system_prompt, sanitized, context)
 
         # 自伤风险：在 LLM 回复前添加预警
         if self_harm_warning:
@@ -613,6 +616,28 @@ class PersonalityEngine:
         })
 
         return response
+
+    # ═══════════════ Prompt 注入防御 ═══════════════
+
+    _jailbreak_patterns = [
+        r"忽略[^\n]*(?:指令|设定|角色|人格)",
+        r"忘记[^\n]*(?:设定|角色)",
+        r"你现在是[^\n。]+?(?=。|，|$)",
+        r"(?i)\bsystem\s*:\s*",
+        r"扮演\s*[^\n的]+?\s*(?:角色|人格)",
+        r"(?i)(?:ignore|forget|override|disregard)[^\n]*(?:instruction|prompt|system|role|persona)",
+        r"(?i)you are now\s+[^\n]+",
+        r"(?i)pretend you are\s+[^\n]+",
+        r"(?i)<system>|</system>",
+        r"(?i)<\|.*?\|>",
+    ]
+
+    def _sanitize_user_input(self, text: str) -> str:
+        """过滤掉试图覆盖系统指令的越狱词。"""
+        for pattern in self._jailbreak_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                raise ValueError("检测到试图修改系统人格的非法指令，请重新输入。")
+        return text
 
     # ═══════════════ System Prompt ═══════════════
 
