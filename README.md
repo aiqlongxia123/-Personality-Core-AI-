@@ -54,8 +54,8 @@
 ### 安装
 
 ```bash
-git clone https://github.com/aiqlongxia123/personality-core.git
-cd personality-core
+git clone https://github.com/aiqlongxia123/aiqlongxia123-personality-core.git
+cd aiqlongxia123-personality-core
 
 python -m venv .venv
 .venv\Scripts\activate        # Windows

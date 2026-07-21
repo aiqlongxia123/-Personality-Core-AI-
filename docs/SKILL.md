@@ -21,7 +21,7 @@ triggers:
 ## 在哪
 
 - **盘在**: `C:\Users\13534\Desktop\渊`
-- **GitHub**: <https://github.com/aiqlongxia123/personality-core>
+- **GitHub**: <https://github.com/aiqlongxia123/aiqlongxia123-personality-core>
 - **激活**: `.\\.venv\Scripts\Activate.ps1`
 - **跑demo**: `python scripts/demo.py`
 - **Web界面**: `python ui/gradio_app.py` → :7860
