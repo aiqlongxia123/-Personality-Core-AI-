@@ -7,6 +7,9 @@ from .gmm_clusterer import GMmClusterer
 from .morph import morph_vector
 from .scorer import PersonalityScorer
 from .comparator import PersonalityComparator
+from .emotion_core import EmotionCore
+from .memory_engine import MemoryAndGrowthEngine
+from .llm_engine import LLMChatEngine
 
 __all__ = [
     "PersonalityEngine",
@@ -16,6 +19,9 @@ __all__ = [
     "morph_vector",
     "PersonalityScorer",
     "PersonalityComparator",
+    "EmotionCore",
+    "MemoryAndGrowthEngine",
+    "LLMChatEngine",
 ]
 
 __version__ = "0.1.0"

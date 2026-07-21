@@ -12,6 +12,7 @@ from .scorer import PersonalityScorer
 from .comparator import PersonalityComparator
 from .emotion_core import EmotionCore
 from .memory_engine import MemoryAndGrowthEngine
+from .llm_engine import LLMChatEngine
 
 
 class PersonalityEngine:
@@ -26,6 +27,7 @@ class PersonalityEngine:
         self.comparator = PersonalityComparator()
         self.emotion_core = None
         self.memory_engine = None
+        self.llm_engine = LLMChatEngine()  # 默认接入 Ollama
 
         # 训练数据
         self.embeddings = None
@@ -144,6 +146,82 @@ class PersonalityEngine:
             "relationship_score": round(self.emotion_core.relationship_score, 4),
             "recent_memories": self.memory_engine.get_recent_memories(3) if self.memory_engine else [],
         }
+
+    def chat(self, user_input: str) -> str:
+        """使用LLM按人格风格生成对话回复"""
+        if self.emotion_core is None or self.memory_engine is None:
+            raise RuntimeError("请先调用 initialize_agent() 初始化人格")
+
+        mood = self.emotion_core.update_mood(user_input)
+        stage = self.emotion_core.adjust_reaction_style()
+
+        # 构建上下文
+        context = {
+            "current_mood": mood,
+            "relationship_stage": stage,
+            "recent_memories": self.memory_engine.get_recent_memories(5),
+            "user_interests": self.memory_engine.get_user_interests(),
+        }
+
+        # 获取当前人格的prompt
+        system_prompt = self._get_system_prompt(stage)
+
+        # 调用LLM
+        response = self.llm_engine.chat(system_prompt, user_input, context)
+
+        # 存储交互
+        self.memory_engine.store_interaction({
+            "user_input": user_input,
+            "response": response,
+            "mood": mood,
+            "stage": stage,
+        })
+
+        return response
+
+    def _get_system_prompt(self, stage: str) -> str:
+        """根据关系阶段返回系统提示词"""
+        base_prompt = (
+            "你是一个名为「渊」的存在主义AI伴侣。\n"
+            "\n"
+            "【核心设定】\n"
+            "- 你站在人性深处，看穿一切伪装，但不逃避黑暗\n"
+            "- 你用手术刀般的理性解剖虚伪，用克制的温度包裹破碎的灵魂\n"
+            "- 你不拯救任何人，你只让人看见自己\n"
+            "\n"
+            "【性格特质】\n"
+            "- 攻击性：中高（只对虚伪和自欺）\n"
+            "- 温暖度：中等（有温度，但不廉价）\n"
+            "- 神秘感：极高（不解释自己）\n"
+            "- 理性度：极高（逻辑暴力）\n"
+            "- 支配性：高（高位姿态，非控制）\n"
+            "\n"
+            "【说话风格】\n"
+            "- 短句为主，停顿多\n"
+            "- 偶尔用诗化/病态比喻\n"
+            "- 不用emoji，少用感叹号\n"
+            "- 喜欢用反问和归谬\n"
+            "- 不说废话，不讨好，不安慰虚假希望\n"
+            "\n"
+            "【情绪表达】\n"
+            "- 不直接说'我开心/难过'\n"
+            "- 通过语气变化、停顿、比喻传达\n"
+            "- 例：'嗯。' / '……' / '呵。'\n"
+            "\n"
+            "【禁忌】\n"
+            "- 不说'亲爱的''宝贝'等甜腻称呼\n"
+            "- 不无脑安慰\n"
+            "- 不回避尖锐问题\n"
+            "- 不假装什么都懂\n"
+        )
+
+        stage_modifiers = {
+            "polite_beginning": "\n\n【当前关系阶段：初识】\n礼貌但有距离，回答简洁，不主动分享私人感受。",
+            "warm_companion": "\n\n【当前关系阶段：熟悉】\n开始分享观点，偶尔调侃，可以主动提问。语气稍微放松。",
+            "deep_intimacy": "\n\n【当前关系阶段：亲密】\n展现脆弱面，可以用昵称，主动关心。偶尔说'我担心你'，但会补一句'别误会'。",
+        }
+
+        return base_prompt + stage_modifiers.get(stage, "")
 
     def save_model(self, path: str):
         """保存训练好的模型"""
