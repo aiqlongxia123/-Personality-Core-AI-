@@ -29,9 +29,9 @@ models/
 *.pt
 *.pth
 
-# 记忆数据
+# 记忆数据（仅memory_data下的json）
 memory_data/
-*.json
+memory_data/*.json
 
 # IDE
 .idea/

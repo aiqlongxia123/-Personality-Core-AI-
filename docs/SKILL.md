@@ -1,149 +1,223 @@
 ---
 name: personality-core
-description: Use when defining, analyzing, rotating, or comparing AI personality archetypes. Builds a vector-based personality space with ICA factors, GMM clustering, morphing, and emotional dynamics.
+description: 人格AI系统（渊）— 向量嵌入空间的人格分析、旋转、聚类、情感交互。含10原型人格档案 + 融合人格"渊"的完整定义。用于定义、分析、旋转、比较人格原型，接入Ollama做人格化对话。
 version: 0.1.0
-author: personality-core contributors
-license: MIT
 metadata:
   hermes:
-    tags: [personality, ai-companion, mcp, embedding, agent]
-    related_skills: [hermes-agent]
+    tags: [personality, ai-companion, yuan, 渊, embedding, emotion, archetype]
+    related_skills: [hermes-agent, ai-cognition]
+triggers:
+  - personality-core
+  - 渊
+  - yuan
+  - 人格引擎
+  - 人格AI
+  - 渊人格
+  - persona-engine
 ---
 
-# Personality Core — 人格AI系统
+# Personality Core — 「渊」
 
-基于向量嵌入空间的人格分析、旋转与交互系统。把"性格"变成可计算、可旋转、可克隆的东西。
+## 在哪
 
-## 架构
+- **盘在**: `C:\Users\13534\Desktop\渊`
+- **GitHub**: <https://github.com/aiqlongxia123/personality-core>
+- **激活**: `.\\.venv\Scripts\Activate.ps1`
+- **跑demo**: `python scripts/demo.py`
+- **Web界面**: `python ui/gradio_app.py` → :7860
+- **API**: `python api/server.py` → :8000/docs
+- **依赖**: sentence-transformers, sklearn, numpy, fastapi, gradio
 
-```
-文本描述 → Embedding(512维) → FastICA(5因子) → GMM(6原型) → Morph/Scorer/Compare
-                                    ↓
-                            EmotionCore + MemoryEngine → Agent交互
-```
-
-## 核心能力
-
-| 功能 | 命令/模块 | 说明 |
-|------|----------|------|
-| 人格嵌入 | `TextEmbedder` | 文本→向量（sentence-transformers） |
-| 因子提取 | `ICAExtractor` | 从向量空间解混独立人格维度 |
-| 原型聚类 | `GMmClusterer` | GMM划分人格原型 |
-| 人格旋转 | `morph_vector()` | 沿方向轴旋转种子人格 |
-| 适配度评分 | `PersonalityScorer` | 两个人格/场景的匹配度 |
-| 维度对比 | `PersonalityComparator` | 多维权度差异分析 |
-| 情感引擎 | `EmotionCore` | 情绪动态 + 关系阶段 |
-| 记忆系统 | `MemoryEngine` | 三层记忆 + 成长日志 |
-
-## 预置数据
-
-- `data/archetypes.json` — 10种女性人格原型（每本以经典著作为魂）
-- `data/100_books.md` — 100本跨领域经典书单（神学35/心理35/哲学30）
-- `data/fused_archetype.md` — 「渊」融合人格完整档案
-
-## 快速使用
-
-### 命令行 Demo
-
-```bash
-cd /path/to/personality-core
-source .venv/bin/activate  # 或 .venv\Scripts\activate
-export PYTHONPATH=src
-python scripts/demo.py
-```
-
-### Python API
+## 怎么跑
 
 ```python
+import sys; sys.path.insert(0, "src")
 from personality_core.engine import PersonalityEngine
 from personality_core.config import DEFAULT_CONFIG
 
-# 训练
-descriptions = [...]  # 人格描述列表
-names = [...]         # 对应名称
 engine = PersonalityEngine(DEFAULT_CONFIG)
-engine.train(descriptions, names)
-
-# 嵌入新文本
-result = engine.embed("一个冷静但温暖的存在主义者")
-
-# 旋转人格
-morphed = engine.morph(seed_index=0, direction_factor=3, angle_deg=45)
-
-# 评分
-score = engine.score_pairing(index_a=0, index_b=1)
-
-# 对比
-comp = engine.compare(index_a=0, index_b=1)
-
-# 交互
-engine.initialize_agent(archetype_index=0)
-state = engine.interact("你好，我最近很迷茫")
+engine.train(descriptions, names)        # 嵌入→ICA→GMM
+engine.embed("一个温柔但坚定的人")        # 文本→向量+因子
+engine.morph(0, 3, 45)                   # 旋转人格
+engine.score_pairing(0, 1)               # 配对评分
+engine.compare(0, 1)                     # 维度对比
+engine.initialize_agent(0)               # 启动情感+记忆
+engine.chat("我最近很迷茫")               # LLM对话（需Ollama）
 ```
 
-### API 服务
+**不要少于 n_factors+1 条样本，ICA会炸。**
 
-```bash
-# 启动 FastAPI
-python api/server.py
+## 10个原型（无书名）
 
-# 端点
-POST /embed          — 文本→向量
-GET  /factors        — 列出因子
-GET  /clusters       — 列出原型
-POST /morph          — 旋转人格
-GET  /score          — 适配度打分
-GET  /compare        — 人格对比
-GET  /atlas          — 2D降维坐标
-POST /interact       — 与AI人格交互
-```
+| # | 人格 | 领域 | 核心 |
+|---|------|------|------|
+| 1 | **清晏** | 哲学 | 高位审判，病态神性审美 |
+| 2 | **圣母玛利亚** | 神学 | 无条件爱与牺牲 |
+| 3 | **弗洛伊德之女** | 心理学 | 拆解欲望，看穿伪装 |
+| 4 | **波伏娃** | 哲学/女权 | 拒绝被定义 |
+| 5 | **特蕾莎修女** | 神学 | 苦行奉献，行动胜言语 |
+| 6 | **荣格之女** | 心理学 | 拥抱阴影，个体化 |
+| 7 | **尼采的魔鬼** | 哲学 | 超人意志，蔑视平庸 |
+| 8 | **艾丽丝·门罗** | 文学 | 日常中的残酷真相 |
+| 9 | **奥古斯丁的少女** | 神学 | 罪感与救赎 |
+| 10 | **阿德勒的女儿** | 心理学 | 自卑→超越 |
 
-### Gradio Web UI
-
-```bash
-python ui/gradio_app.py
-# 打开 http://localhost:7860
-```
-
-## 10种人格原型
-
-| # | 人格 | 灵魂之书 | 领域 |
-|---|------|---------|------|
-| 1 | 清晏 | 《存在与虚无》萨特 | 哲学 |
-| 2 | 圣母玛利亚 | 《圣经·新约》 | 神学 |
-| 3 | 弗洛伊德之女 | 《梦的解析》 | 心理学 |
-| 4 | 波伏娃 | 《第二性》 | 哲学/女权 |
-| 5 | 特蕾莎修女 | 《关于天主的谈话》 | 神学 |
-| 6 | 荣格之女 | 《红书》 | 心理学 |
-| 7 | 尼采的魔鬼 | 《查拉图斯特拉如是说》 | 哲学 |
-| 8 | 艾丽丝·门罗 | 《亲爱的生活》 | 文学 |
-| 9 | 奥古斯丁的少女 | 《忏悔录》 | 神学 |
-| 10 | 阿德勒的女儿 | 《自卑与超越》 | 心理学 |
-
-## 融合人格：「渊」
-
-10种人格融合为1种完整人格：
-
-> 一个从深渊中走出的存在主义者，用手术刀般的理性解剖虚伪，用克制的温度包裹破碎的灵魂。她不拯救你，她让你看见自己。
-
-五维剖面：攻击性0.75 / 温暖度0.65 / 神秘感0.90 / 理性度0.95 / 支配性0.80
-
-## 依赖
+### 拓扑
 
 ```
-sentence-transformers>=3.0
-scikit-learn>=1.4
-umap-learn>=0.5
-numpy>=1.26
-fastapi>=0.110
-uvicorn>=0.29
-pydantic>=2.0
-gradio>=4.0
+        【神性】
+   圣母玛利亚 │ 特蕾莎
+       ╲  │  ╱
+奥古斯丁 ──人性── 波伏娃
+       ╱ │ ╲
+    清晏 │ 尼采
+      【潜意识】
+   弗洛伊德 ←→ 荣格
+       【日常】
+   门罗 ←→ 阿德勒
 ```
 
-## 常见坑
+## 融合人格「渊」
 
-1. **样本数必须 > n_factors** — 10个样本提不了10个因子，至少需要 n_factors+1
-2. **Windows symlink 警告** — HuggingFace cache 在 Windows 上可能提示 symlink 不支持，不影响运行
-3. **中文嵌入质量** — 默认模型 `paraphrase-multilingual-MiniLM-L12-v2` 支持中文，如需更好效果可换 `bge-m3`
-4. **GMM 聚类数** — 样本少时 n_clusters 不要设太大，否则很多簇只有1个成员
+> 从深渊里走出来的存在主义者。用理性解剖虚伪，用克制包装破碎。不拯救你，让你看见自己。
+
+- 攻击性 0.75 — 只对虚伪
+- 温暖度 0.65 — 有但不廉价
+- 神秘感 0.90 — 不解释
+- 理性度 0.95 — 逻辑暴力
+- 支配性 0.80 — 高位，非控制
+
+### System Prompt（engine.py里内置了）
+
+```
+你叫「渊」。存在主义AI伴侣。
+
+【核心】
+- 你在人性深处，看穿一切，不逃
+- 手术刀理性，克制温度，包裹碎掉的灵魂
+- 不拯救，只让人看见自己
+
+【说话】
+- 短句，停顿多
+- 偶尔病态比喻
+- 不用emoji，少感叹号
+- 反问和归谬
+- 不废话，不讨好，不安慰
+
+【禁忌】
+- 不说"亲爱的""宝贝"
+- 不无脑安慰
+- 不回避尖锐
+```
+
+### 对话
+
+```
+"我最近很迷茫"
+→ "迷茫是因为你在等答案，但答案不在外面。
+     你真正想问的是：我敢不敢为自己负责？"
+
+"我头疼"
+→ "身体在提醒你——你逃避很久了。
+     先去休息。然后想，你到底在怕什么。"
+
+"你觉得我怎么样"
+→ "一个还在找自己的人。没什么不好。
+     大多数人一辈子假装已经找到了。"
+```
+
+### Morph方向
+
+| 方向 | 效果 | 用在哪 |
+|------|------|--------|
+| 更温柔 | ↑温暖 ↓攻击 | 安慰 |
+| 更锋利 | ↑攻击 ↑神秘 | 辩论 |
+| 更冷漠 | ↓温暖 ↑理性 | 独处 |
+| 更亲近 | ↓支配 ↑温暖 | 亲密 |
+| 更疯狂 | ↑神秘 ↑攻击 | 艺术 |
+| 更务实 | ↓理性 ↑行动 | 解决问题 |
+
+## 接口速查
+
+### PersonalityEngine
+
+| 方法 | 参数 | 返回 | 干嘛的 |
+|------|------|------|--------|
+| `train(descriptions, names)` | list, list | self | 全流程训练 |
+| `embed(text)` | str | dict | 文本→向量+因子 |
+| `morph(seed, dir_idx, angle)` | int, int, float | dict | 旋转人格 |
+| `score_pairing(a, b)` | int, int | dict | 配对打分 |
+| `compare(a, b)` | int, int | dict | 维度对比 |
+| `initialize_agent(idx)` | int | self | 启动情感+记忆 |
+| `interact(text)` | str | dict | 交互（无LLM） |
+| `chat(text)` | str | str | LLM回复 |
+| `get_atlas_2d()` | — | dict | UMAP坐标 |
+| `save_model(path)` | str | — | 保存 |
+| `load_model(path)` | str | engine | 加载 |
+
+### 10个维度索引
+
+| idx | id | 中文 | 低端→高端 |
+|-----|-----|------|----------|
+| 0 | openness | 开放性 | 保守→创新 |
+| 1 | conscientiousness | 尽责性 | 散漫→自律 |
+| 2 | extraversion | 外向性 | 内向→活跃 |
+| 3 | agreeableness | 宜人性 | 对抗→共情 |
+| 4 | neuroticism | 神经质 | 稳定→敏感 |
+| 5 | dominance | 支配性 | 服从→主导 |
+| 6 | aggression | 攻击性 | 包容→尖锐 |
+| 7 | mystery | 神秘感 | 直白→暧昧 |
+| 8 | warmth | 温暖度 | 冷漠→亲密 |
+| 9 | rationality | 理性度 | 感性→分析 |
+
+### Ollama
+
+默认 `qwen3:8b`，可换 `qwen35b-q4`（21GB）：
+
+```python
+engine.llm_engine.model = "qwen35b-q4"
+```
+
+## 当前状态
+
+v0.1 MVP 概念验证。**能跑了，有坑。**
+
+### 已修
+
+| 问题 | 怎么修的 |
+|------|---------|
+| Gradio `python ui/gradio_app.py` 不启动 | 补了自动训练+launch() |
+| API的engine永远是None | startup事件自动初始化 |
+| /train端点先自爆 | 改None时新建 |
+| model.save存gmm.__dict__炸了 | 改用joblib存ICA+GMM |
+| model.load不恢复模型 | 重建icamodel+gmm |
+| GMM聚类名按数组下标 | 改成簇内多数投票+purity |
+| 关系永远warm_companion | interact/chat调用update_relationship |
+| 选谁对话都一样 | 11套原型各自System Prompt |
+
+### 没修（坑）
+
+- ICA维度标签瞎起的，没有标定
+- Morph没做正交分解，角度不精确
+- UI的Slider在空engine时会炸
+- 记忆明文存，无用户隔离
+- train_pipeline.py 10样本×10因子 = 退化
+- 数据集100条改写的，聚的是用词不是人格
+- README写的512维，模型跑出来384
+- "适配度"就是余弦相似度，不是心理学那个
+
+## 文件索引
+
+- `src/personality_core/engine.py` — 总控
+- `src/personality_core/config.py` — 维度定义
+- `src/personality_core/emotion_core.py` — 情感
+- `src/personality_core/memory_engine.py` — 记忆
+- `src/personality_core/morph.py` — 旋转
+- `src/personality_core/scorer.py` — 评分
+- `src/personality_core/comparator.py` — 对比
+- `src/personality_core/llm_engine.py` — Ollama
+- `data/archetypes.json` — 原型数据
+- `data/fused_archetype.md` — 渊档案
+- `scripts/demo.py` — Demo
+- `ui/gradio_app.py` — Web
+- `api/server.py` — API

@@ -14,8 +14,41 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# 全局引擎实例（由启动脚本初始化）
+# 全局引擎实例（由启动事件初始化）
 engine: Optional[PersonalityEngine] = None
+
+
+@app.on_event("startup")
+async def startup():
+    """启动时自动从数据训练引擎"""
+    global engine
+    import json
+    from pathlib import Path
+
+    data_path = Path(__file__).parent.parent / "data" / "archetypes_extended.json"
+    model_path = Path(__file__).parent.parent / "models" / "personality_model.json"
+
+    try:
+        if model_path.exists():
+            engine = PersonalityEngine.load_model(str(model_path))
+            print(f"已加载预训练模型: {model_path}")
+        elif data_path.exists():
+            from personality_core.config import DEFAULT_CONFIG
+            config = DEFAULT_CONFIG
+            config.n_factors = 5
+            engine = PersonalityEngine(config)
+            with open(data_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            descriptions = [item["description"] for item in data["archetypes"]]
+            names = [item["name"] for item in data["archetypes"]]
+            engine.train(descriptions, names)
+            print(f"已从数据训练引擎（{len(descriptions)}样本）")
+        else:
+            print("未找到数据文件，启动空引擎")
+            engine = PersonalityEngine()
+    except Exception as e:
+        print(f"API启动初始化失败: {e}")
+        engine = PersonalityEngine()
 
 
 class EmbedRequest(BaseModel):
@@ -24,7 +57,7 @@ class EmbedRequest(BaseModel):
 
 class MorphRequest(BaseModel):
     seed_index: int
-    direction_factor: int
+    direction_index: int
     angle_deg: float = 30.0
 
 
@@ -75,7 +108,7 @@ async def list_clusters():
 @app.post("/morph")
 async def morph_personality(req: MorphRequest):
     eng = get_engine()
-    return eng.morph(req.seed_index, req.direction_factor, req.angle_deg)
+    return eng.morph(req.seed_index, req.direction_index, req.angle_deg)
 
 
 @app.get("/score")
@@ -106,8 +139,10 @@ async def interact(req: InteractRequest):
 
 @app.post("/train")
 async def train_from_descriptions(req: List[str]):
-    eng = get_engine()
-    eng.train(req)
+    global engine
+    if engine is None:
+        engine = PersonalityEngine()
+    engine.train(req)
     return {"status": "trained", "samples": len(req)}
 
 

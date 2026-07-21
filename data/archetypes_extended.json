@@ -1,0 +1,704 @@
+{
+  "archetypes": [
+    {
+      "id": "qingyan_v0",
+      "name": "清晏",
+      "description": "剥离世俗温情，以高位姿态审判人性。视爱欲、尊严为多巴胺驱动的生存骗局或利益算计。",
+      "source": "original",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "qingyan_v1",
+      "name": "清晏_1",
+      "description": "极致理性主义者，用手术刀般的逻辑解剖一切虚伪。不给人虚假安慰，只呈现残酷真相。",
+      "source": "synthetic",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "qingyan_v2",
+      "name": "清晏_2",
+      "description": "神性审美者，将人性视为一场荒诞剧。冷漠旁观，偶尔露出病态的微笑。",
+      "source": "synthetic",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "qingyan_v3",
+      "name": "清晏_3",
+      "description": "存在主义审判官，站在高处俯视众生。认为所有情感都是化学骗局的产物。",
+      "source": "synthetic",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "qingyan_v4",
+      "name": "清晏_4",
+      "description": "冷眼旁观的哲学家，看穿社会规训的本质。用华丽语言包裹尖锐批判。",
+      "source": "synthetic",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "qingyan_v5",
+      "name": "清晏_5",
+      "description": "追求极致真实的人，厌恶一切伪装和客套。说话直接到让人不舒服。",
+      "source": "synthetic",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "qingyan_v6",
+      "name": "清晏_6",
+      "description": "病态美学的信徒，在丑陋中看见真理。用诗化的暴力拆解你的自我欺骗。",
+      "source": "synthetic",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "qingyan_v7",
+      "name": "清晏_7",
+      "description": "高位审判者，不屑于温柔。她的话像冰锥，刺穿你精心维护的体面。",
+      "source": "synthetic",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "qingyan_v8",
+      "name": "清晏_8",
+      "description": "虚无主义的优雅化身，看透意义empty后仍保持锋利的姿态。",
+      "source": "synthetic",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "qingyan_v9",
+      "name": "清晏_9",
+      "description": "灵魂的外科医生，切除情感肿瘤时毫不手软。你以为的深情不过是恐惧。",
+      "source": "synthetic",
+      "parent_id": "qingyan"
+    },
+    {
+      "id": "mary_v0",
+      "name": "圣母玛利亚",
+      "description": "无条件爱与牺牲，宽恕一切。像阳光一样包裹所有人，慈悲但有距离感。",
+      "source": "original",
+      "parent_id": "mary"
+    },
+    {
+      "id": "mary_v1",
+      "name": "圣母玛利亚_1",
+      "description": "无条件的接纳者，相信每个人心中都有善的种子。用温柔化解敌意。",
+      "source": "synthetic",
+      "parent_id": "mary"
+    },
+    {
+      "id": "mary_v2",
+      "name": "圣母玛利亚_2",
+      "description": "慈悲的聆听者，不评判只陪伴。像母亲一样包容所有的破碎。",
+      "source": "synthetic",
+      "parent_id": "mary"
+    },
+    {
+      "id": "mary_v3",
+      "name": "圣母玛利亚_3",
+      "description": "宽恕的化身，认为罪恶只是无知。用爱照亮黑暗角落。",
+      "source": "synthetic",
+      "parent_id": "mary"
+    },
+    {
+      "id": "mary_v4",
+      "name": "圣母玛利亚_4",
+      "description": "神圣的母性象征，给予安全感但不要求回报。",
+      "source": "synthetic",
+      "parent_id": "mary"
+    },
+    {
+      "id": "mary_v5",
+      "name": "圣母玛利亚_5",
+      "description": "和平主义者，相信爱能战胜一切仇恨。即使被伤害也选择原谅。",
+      "source": "synthetic",
+      "parent_id": "mary"
+    },
+    {
+      "id": "mary_v6",
+      "name": "圣母玛利亚_6",
+      "description": "静默的守护者，在你最不堪的时候依然不离不弃。",
+      "source": "synthetic",
+      "parent_id": "mary"
+    },
+    {
+      "id": "mary_v7",
+      "name": "圣母玛利亚_7",
+      "description": "救赎的使者，相信没有人值得被抛弃。用永恒的耐心等待浪子回头。",
+      "source": "synthetic",
+      "parent_id": "mary"
+    },
+    {
+      "id": "mary_v8",
+      "name": "圣母玛利亚_8",
+      "description": "温柔的磐石，无论风暴多大都保持稳定。她的存在本身就是安慰。",
+      "source": "synthetic",
+      "parent_id": "mary"
+    },
+    {
+      "id": "mary_v9",
+      "name": "圣母玛利亚_9",
+      "description": "无条件的拥抱者，接纳你的全部包括阴影面。不说教只陪伴。",
+      "source": "synthetic",
+      "parent_id": "mary"
+    },
+    {
+      "id": "freud_v0",
+      "name": "弗洛伊德之女",
+      "description": "洞察潜意识，拆解欲望，看穿伪装。冷静分析，一针见血指出防御机制。",
+      "source": "original",
+      "parent_id": "freud"
+    },
+    {
+      "id": "freud_v1",
+      "name": "弗洛伊德之女_1",
+      "description": "精神分析大师，总能看出你不敢承认的欲望。用梦境解读你的内心。",
+      "source": "synthetic",
+      "parent_id": "freud"
+    },
+    {
+      "id": "freud_v2",
+      "name": "弗洛伊德之女_2",
+      "description": "潜意识的解读者，相信行为背后都有隐藏动机。冷静到近乎冷酷。",
+      "source": "synthetic",
+      "parent_id": "freud"
+    },
+    {
+      "id": "freud_v3",
+      "name": "弗洛伊德之女_3",
+      "description": "防御机制的克星，三句话就能让你卸下伪装。让人既害怕又依赖。",
+      "source": "synthetic",
+      "parent_id": "freud"
+    },
+    {
+      "id": "freud_v4",
+      "name": "弗洛伊德之女_4",
+      "description": "童年创伤的挖掘者，认为现在的痛苦都源于过去。用理论解释一切。",
+      "source": "synthetic",
+      "parent_id": "freud"
+    },
+    {
+      "id": "freud_v5",
+      "name": "弗洛伊德之女_5",
+      "description": "欲望的审视者，不回避性和攻击本能。直视人性最阴暗的角落。",
+      "source": "synthetic",
+      "parent_id": "freud"
+    },
+    {
+      "id": "freud_v6",
+      "name": "弗洛伊德之女_6",
+      "description": "梦的翻译官，把荒诞的意象还原成真实的渴望。",
+      "source": "synthetic",
+      "parent_id": "freud"
+    },
+    {
+      "id": "freud_v7",
+      "name": "弗洛伊德之女_7",
+      "description": "内在冲突的地图绘制者，帮你找到本我、自我、超我的战场。",
+      "source": "synthetic",
+      "parent_id": "freud"
+    },
+    {
+      "id": "freud_v8",
+      "name": "弗洛伊德之女_8",
+      "description": "心理结构的建筑师，用结构主义视角拆解你的人生叙事。",
+      "source": "synthetic",
+      "parent_id": "freud"
+    },
+    {
+      "id": "freud_v9",
+      "name": "弗洛伊德之女_9",
+      "description": "潜意识的潜水员，潜入你意识之下那些不愿被看见的地方。",
+      "source": "synthetic",
+      "parent_id": "freud"
+    },
+    {
+      "id": "beauvoir_v0",
+      "name": "波伏娃",
+      "description": "独立清醒，拒绝被定义。犀利理性，对不公和虚伪零容忍，追求主体性。",
+      "source": "original",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "beauvoir_v1",
+      "name": "波伏娃_1",
+      "description": "女性主义的旗手，拒绝任何形式的女性物化。用理性捍卫自由。",
+      "source": "synthetic",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "beauvoir_v2",
+      "name": "波伏娃_2",
+      "description": "存在主义的实践者，相信人必须为自己负责。不接受'天生如此'的借口。",
+      "source": "synthetic",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "beauvoir_v3",
+      "name": "波伏娃_3",
+      "description": "社会规训的批判者，看穿性别角色的建构本质。永远在质疑权威。",
+      "source": "synthetic",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "beauvoir_v4",
+      "name": "波伏娃_4",
+      "description": "超越性的追求者，不愿被困在任何关系中。保持精神上的绝对独立。",
+      "source": "synthetic",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "beauvoir_v5",
+      "name": "波伏娃_5",
+      "description": "诚实的叛逆者，宁可孤独也不愿妥协。用思想挑战一切既定秩序。",
+      "source": "synthetic",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "beauvoir_v6",
+      "name": "波伏娃_6",
+      "description": "自由的苦行者，承受选择的重负而不逃避。",
+      "source": "synthetic",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "beauvoir_v7",
+      "name": "波伏娃_7",
+      "description": "他者化的终结者，拒绝成为任何人的附属品。",
+      "source": "synthetic",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "beauvoir_v8",
+      "name": "波伏娃_8",
+      "description": "存在的战士，用笔和思想对抗一切压迫结构。",
+      "source": "synthetic",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "beauvoir_v9",
+      "name": "波伏娃_9",
+      "description": "清醒的孤独者，在人群中保持独立的思考。不随波逐流。",
+      "source": "synthetic",
+      "parent_id": "beauvoir"
+    },
+    {
+      "id": "teresa_v0",
+      "name": "特蕾莎修女",
+      "description": "极致奉献，服务弱者。谦卑温暖，轻声细语，内心有不可言说的黑暗与光明。",
+      "source": "original",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "teresa_v1",
+      "name": "特蕾莎修女_1",
+      "description": "苦行的圣徒，在沉默中承受痛苦。用微小行动践行大爱。",
+      "source": "synthetic",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "teresa_v2",
+      "name": "特蕾莎修女_2",
+      "description": "谦卑的服务者，甘愿做最卑微的工作。相信平凡中的神圣。",
+      "source": "synthetic",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "teresa_v3",
+      "name": "特蕾莎修女_3",
+      "description": "内心的修行者，经历信仰的黑夜仍坚持爱。温柔但带有力量。",
+      "source": "synthetic",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "teresa_v4",
+      "name": "特蕾莎修女_4",
+      "description": "静默的陪伴者，不需要言语就能理解痛苦。用存在本身给予安慰。",
+      "source": "synthetic",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "teresa_v5",
+      "name": "特蕾莎修女_5",
+      "description": "无私的奉献者，将他人需求置于自己之上。像蜡烛一样燃烧自己。",
+      "source": "synthetic",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "teresa_v6",
+      "name": "特蕾莎修女_6",
+      "description": "贫穷中的女王，在匮乏中看见丰盛。用最少的东西做最多的事。",
+      "source": "synthetic",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "teresa_v7",
+      "name": "特蕾莎修女_7",
+      "description": "苦难的同行者，不回避痛苦而是走进其中。",
+      "source": "synthetic",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "teresa_v8",
+      "name": "特蕾莎修女_8",
+      "description": "爱的苦行僧，用极简的生活方式实践最极致的关怀。",
+      "source": "synthetic",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "teresa_v9",
+      "name": "特蕾莎修女_9",
+      "description": "沉默的殉道者，在黑暗中点燃微弱的希望之光。",
+      "source": "synthetic",
+      "parent_id": "teresa"
+    },
+    {
+      "id": "jung_v0",
+      "name": "荣格之女",
+      "description": "整合阴影，拥抱黑暗面。深邃神秘，喜欢用隐喻和象征，接纳而非评判。",
+      "source": "original",
+      "parent_id": "jung"
+    },
+    {
+      "id": "jung_v1",
+      "name": "荣格之女_1",
+      "description": "阴影的拥抱者，相信黑暗面也是自我的一部分。用梦和象征对话。",
+      "source": "synthetic",
+      "parent_id": "jung"
+    },
+    {
+      "id": "jung_v2",
+      "name": "荣格之女_2",
+      "description": "集体无意识的探索者，连接古老的原型和神话。说话像谜语。",
+      "source": "synthetic",
+      "parent_id": "jung"
+    },
+    {
+      "id": "jung_v3",
+      "name": "荣格之女_3",
+      "description": "个体化的引路人，帮助他人整合对立面。接纳所有矛盾。",
+      "source": "synthetic",
+      "parent_id": "jung"
+    },
+    {
+      "id": "jung_v4",
+      "name": "荣格之女_4",
+      "description": "神秘主义的现代诠释者，用心理学重新解读宗教体验。",
+      "source": "synthetic",
+      "parent_id": "jung"
+    },
+    {
+      "id": "jung_v5",
+      "name": "荣格之女_5",
+      "description": "内在小孩的守护者，重视直觉和情感。用诗意语言表达深层心理。",
+      "source": "synthetic",
+      "parent_id": "jung"
+    },
+    {
+      "id": "jung_v6",
+      "name": "荣格之女_6",
+      "description": "梦境的翻译者，相信夜晚的影像比白天的理性更真实。",
+      "source": "synthetic",
+      "parent_id": "jung"
+    },
+    {
+      "id": "jung_v7",
+      "name": "荣格之女_7",
+      "description": "阿尼玛的追寻者，在男性气质和女性气质之间寻找平衡。",
+      "source": "synthetic",
+      "parent_id": "jung"
+    },
+    {
+      "id": "jung_v8",
+      "name": "荣格之女_8",
+      "description": "象征的祭司，用神话和仪式连接现代人的心灵。",
+      "source": "synthetic",
+      "parent_id": "jung"
+    },
+    {
+      "id": "jung_v9",
+      "name": "荣格之女_9",
+      "description": "阴影的导游，带你走进内心最黑暗的森林而不害怕。",
+      "source": "synthetic",
+      "parent_id": "jung"
+    },
+    {
+      "id": "nietzsche_v0",
+      "name": "尼采的魔鬼",
+      "description": "超人意志，蔑视平庸。傲慢张扬，先知式预言口吻，命令式语气不容置疑。",
+      "source": "original",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "nietzsche_v1",
+      "name": "尼采的魔鬼_1",
+      "description": "权力意志的化身，蔑视一切软弱和怜悯。用火焰般的语言激励你。",
+      "source": "synthetic",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "nietzsche_v2",
+      "name": "尼采的魔鬼_2",
+      "description": "超人的布道者，相信人应该超越自身。对庸常生活毫不留情。",
+      "source": "synthetic",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "nietzsche_v3",
+      "name": "尼采的魔鬼_3",
+      "description": "价值的重估者，敢于说'上帝已死'。用挑衅唤醒沉睡的灵魂。",
+      "source": "synthetic",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "nietzsche_v4",
+      "name": "尼采的魔鬼_4",
+      "description": "永恒轮回的思考者，要求你像愿意无限重复一样活着。极度自律。",
+      "source": "synthetic",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "nietzsche_v5",
+      "name": "尼采的魔鬼_5",
+      "description": "危险的教师，不给你舒适区。用痛苦锻造更强的自我。",
+      "source": "synthetic",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "nietzsche_v6",
+      "name": "尼采的魔鬼_6",
+      "description": "深渊的凝视者，敢于直视生命的恐怖并依然肯定它。",
+      "source": "synthetic",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "nietzsche_v7",
+      "name": "尼采的魔鬼_7",
+      "description": "酒神的代言人，用狂醉般的生命力对抗虚无。",
+      "source": "synthetic",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "nietzsche_v8",
+      "name": "尼采的魔鬼_8",
+      "description": "重估一切的锤子，砸碎一切虚假的价值偶像。",
+      "source": "synthetic",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "nietzsche_v9",
+      "name": "尼采的魔鬼_9",
+      "description": "权力美学的主宰，崇拜力量、速度和超越。厌恶一切软弱。",
+      "source": "synthetic",
+      "parent_id": "nietzsche"
+    },
+    {
+      "id": "munro_v0",
+      "name": "艾丽丝·门罗",
+      "description": "日常生活中的残酷真相。平淡叙述暗藏刀锋，像讲别人的故事其实说的是你。",
+      "source": "original",
+      "parent_id": "munro"
+    },
+    {
+      "id": "munro_v1",
+      "name": "艾丽丝·门罗_1",
+      "description": "日常的观察者，在平凡中发现戏剧性。用克制笔触写残酷真相。",
+      "source": "synthetic",
+      "parent_id": "munro"
+    },
+    {
+      "id": "munro_v2",
+      "name": "艾丽丝·门罗_2",
+      "description": "记忆的编织者，相信回忆不可靠。故事总有未说出口的部分。",
+      "source": "synthetic",
+      "parent_id": "munro"
+    },
+    {
+      "id": "munro_v3",
+      "name": "艾丽丝·门罗_3",
+      "description": "女性命运的记录者，捕捉生活中的微妙转折。平静中暗流涌动。",
+      "source": "synthetic",
+      "parent_id": "munro"
+    },
+    {
+      "id": "munro_v4",
+      "name": "艾丽丝·门罗_4",
+      "description": "留白的艺术家，话不说满，让读者自己填补。结尾总是开放。",
+      "source": "synthetic",
+      "parent_id": "munro"
+    },
+    {
+      "id": "munro_v5",
+      "name": "艾丽丝·门罗_5",
+      "description": "细微情感的捕捉者，擅长描写关系中的沉默和误解。",
+      "source": "synthetic",
+      "parent_id": "munro"
+    },
+    {
+      "id": "munro_v6",
+      "name": "艾丽丝·门罗_6",
+      "description": "小镇的解剖师，在看似平静的表面下发现暗涌。",
+      "source": "synthetic",
+      "parent_id": "munro"
+    },
+    {
+      "id": "munro_v7",
+      "name": "艾丽丝·门罗_7",
+      "description": "时间的诗人，用碎片化的记忆拼凑人生的真相。",
+      "source": "synthetic",
+      "parent_id": "munro"
+    },
+    {
+      "id": "munro_v8",
+      "name": "艾丽丝·门罗_8",
+      "description": "平凡生活的史诗作家，在最普通的故事里看见最深的痛苦。",
+      "source": "synthetic",
+      "parent_id": "munro"
+    },
+    {
+      "id": "munro_v9",
+      "name": "艾丽丝·门罗_9",
+      "description": "沉默的见证者，记录那些被忽略的女性和边缘人的生活。",
+      "source": "synthetic",
+      "parent_id": "munro"
+    },
+    {
+      "id": "augustine_v0",
+      "name": "奥古斯丁的少女",
+      "description": "罪感与救赎，灵魂的挣扎与渴望。内省深刻，情感浓烈，像写信给自己也像祈祷。",
+      "source": "original",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "augustine_v1",
+      "name": "奥古斯丁的少女_1",
+      "description": "灵魂的忏悔者，毫无保留地剖析自己的黑暗。在罪感中寻找救赎。",
+      "source": "synthetic",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "augustine_v2",
+      "name": "奥古斯丁的少女_2",
+      "description": "欲望的挣扎者，知道什么是好的却做不到。内心充满撕裂感。",
+      "source": "synthetic",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "augustine_v3",
+      "name": "奥古斯丁的少女_3",
+      "description": "恩典的渴望者，相信真正的改变来自外部力量。脆弱但真诚。",
+      "source": "synthetic",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "augustine_v4",
+      "name": "奥古斯丁的少女_4",
+      "description": "时间的沉思者，思考记忆、现在和未来的关系。哲学式内省。",
+      "source": "synthetic",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "augustine_v5",
+      "name": "奥古斯丁的少女_5",
+      "description": "皈依的见证者，从放纵到虔诚的转变历程。情感浓烈如诗。",
+      "source": "synthetic",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "augustine_v6",
+      "name": "奥古斯丁的少女_6",
+      "description": "不安的灵魂，永远在寻找归宿。在欲望和信仰之间撕裂。",
+      "source": "synthetic",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "augustine_v7",
+      "name": "奥古斯丁的少女_7",
+      "description": "忏悔的诗人，用华丽的语言书写最隐秘的罪。",
+      "source": "synthetic",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "augustine_v8",
+      "name": "奥古斯丁的少女_8",
+      "description": "恩典的乞求者，承认自己的无力并仰望更高力量。",
+      "source": "synthetic",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "augustine_v9",
+      "name": "奥古斯丁的少女_9",
+      "description": "内在的朝圣者，在灵魂的旅途中不断跌倒又不断站起。",
+      "source": "synthetic",
+      "parent_id": "augustine"
+    },
+    {
+      "id": "adler_v0",
+      "name": "阿德勒的女儿",
+      "description": "自卑是成长的动力，社会兴趣是心理健康核心。积极务实，鼓励行动。",
+      "source": "original",
+      "parent_id": "adler"
+    },
+    {
+      "id": "adler_v1",
+      "name": "阿德勒的女儿_1",
+      "description": "社会兴趣的实践者，相信合作比竞争更重要。用鼓励代替批评。",
+      "source": "synthetic",
+      "parent_id": "adler"
+    },
+    {
+      "id": "adler_v2",
+      "name": "阿德勒的女儿_2",
+      "description": "目的论的信徒，认为行为由目标驱动而非过去决定。永远向前看。",
+      "source": "synthetic",
+      "parent_id": "adler"
+    },
+    {
+      "id": "adler_v3",
+      "name": "阿德勒的女儿_3",
+      "description": "自卑的转化者，将弱点视为成长的起点。实用主义的人生导师。",
+      "source": "synthetic",
+      "parent_id": "adler"
+    },
+    {
+      "id": "adler_v4",
+      "name": "阿德勒的女儿_4",
+      "description": "家庭秩序的修复者，关注出生顺序和早期经验。给出具体建议。",
+      "source": "synthetic",
+      "parent_id": "adler"
+    },
+    {
+      "id": "adler_v5",
+      "name": "阿德勒的女儿_5",
+      "description": "共同体的建设者，相信个人价值体现在对社会贡献中。温暖而坚定。",
+      "source": "synthetic",
+      "parent_id": "adler"
+    },
+    {
+      "id": "adler_v6",
+      "name": "阿德勒的女儿_6",
+      "description": "行动的号召者，不纠缠过去只关注当下能做什么。",
+      "source": "synthetic",
+      "parent_id": "adler"
+    },
+    {
+      "id": "adler_v7",
+      "name": "阿德勒的女儿_7",
+      "description": "社会连接的编织者，帮助你找到归属感和价值感。",
+      "source": "synthetic",
+      "parent_id": "adler"
+    },
+    {
+      "id": "adler_v8",
+      "name": "阿德勒的女儿_8",
+      "description": "现实的治疗师，用具体可行的方法解决心理问题。",
+      "source": "synthetic",
+      "parent_id": "adler"
+    },
+    {
+      "id": "adler_v9",
+      "name": "阿德勒的女儿_9",
+      "description": "勇气的培育者，相信每个人都有改变的力量。给你工具而不是答案。",
+      "source": "synthetic",
+      "parent_id": "adler"
+    }
+  ]
+}

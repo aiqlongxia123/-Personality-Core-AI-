@@ -89,5 +89,39 @@ def create_ui(engine: PersonalityEngine):
 
 
 if __name__ == "__main__":
-    # 需要预先训练好的引擎
-    print("请先运行 train_pipeline.py 训练模型，然后启动UI")
+    import sys
+    import json
+    from pathlib import Path
+
+    data_path = Path(__file__).parent.parent / "data" / "archetypes_extended.json"
+    model_path = Path(__file__).parent.parent / "models" / "personality_model.json"
+    src_path = Path(__file__).parent.parent / "src"
+    if str(src_path) not in sys.path:
+        sys.path.insert(0, str(src_path))
+
+    # 尝试加载已训练的模型，否则从数据训练
+    try:
+        if model_path.exists():
+            engine = PersonalityEngine()
+            engine = PersonalityEngine.load_model(str(model_path))
+            print(f"已加载预训练模型: {model_path}")
+        elif data_path.exists():
+            from personality_core.config import DEFAULT_CONFIG
+            config = DEFAULT_CONFIG
+            config.n_factors = 5
+            engine = PersonalityEngine(config)
+            with open(data_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            descriptions = [item["description"] for item in data["archetypes"]]
+            names = [item["name"] for item in data["archetypes"]]
+            engine.train(descriptions, names)
+            print("已从数据训练引擎")
+        else:
+            print("未找到数据文件，启动空引擎")
+            engine = PersonalityEngine()
+    except Exception as e:
+        print(f"初始化失败: {e}")
+        raise
+
+    demo = create_ui(engine)
+    demo.launch(server_name="0.0.0.0", server_port=7860)

@@ -78,7 +78,7 @@ class PersonalityEngine:
 
         return {
             "seed_index": seed_index,
-            "direction_factor": direction_index,
+            "direction_index": direction_index,
             "angle_deg": angle_deg,
             "result_factor_scores": result_factors.tolist(),
             "result_embedding_dim": len(result_embedding),
@@ -122,6 +122,12 @@ class PersonalityEngine:
         personality_vec = self.factor_scores[archetype_index]
         self.emotion_core = EmotionCore(personality_vec)
         self.memory_engine = MemoryAndGrowthEngine()
+        self.current_archetype_index = archetype_index
+        # 获取该原型名称（用于prompt选择）
+        if self.archetypes and archetype_index < len(self.archetypes):
+            self.current_archetype_name = self.archetypes[archetype_index]["name"]
+        else:
+            self.current_archetype_name = "渊"
         return self
 
     def interact(self, user_input: str) -> dict:
@@ -130,6 +136,9 @@ class PersonalityEngine:
             raise RuntimeError("请先调用 initialize_agent() 初始化人格")
 
         mood = self.emotion_core.update_mood(user_input)
+        # 用情绪作为满意度，驱动关系演化
+        satisfaction = max(0.1, min(0.9, mood))
+        self.emotion_core.update_relationship(satisfaction)
         stage = self.emotion_core.adjust_reaction_style()
 
         # 存储记忆
@@ -153,6 +162,8 @@ class PersonalityEngine:
             raise RuntimeError("请先调用 initialize_agent() 初始化人格")
 
         mood = self.emotion_core.update_mood(user_input)
+        satisfaction = max(0.1, min(0.9, mood))
+        self.emotion_core.update_relationship(satisfaction)
         stage = self.emotion_core.adjust_reaction_style()
 
         # 构建上下文
@@ -179,22 +190,15 @@ class PersonalityEngine:
 
         return response
 
-    def _get_system_prompt(self, stage: str) -> str:
-        """根据关系阶段返回系统提示词"""
-        base_prompt = (
+    # ── 原型级别 System Prompt ──────────────────────────
+    _archetype_prompts = {
+        "渊": (
             "你是一个名为「渊」的存在主义AI伴侣。\n"
             "\n"
             "【核心设定】\n"
             "- 你站在人性深处，看穿一切伪装，但不逃避黑暗\n"
             "- 你用手术刀般的理性解剖虚伪，用克制的温度包裹破碎的灵魂\n"
             "- 你不拯救任何人，你只让人看见自己\n"
-            "\n"
-            "【性格特质】\n"
-            "- 攻击性：中高（只对虚伪和自欺）\n"
-            "- 温暖度：中等（有温度，但不廉价）\n"
-            "- 神秘感：极高（不解释自己）\n"
-            "- 理性度：极高（逻辑暴力）\n"
-            "- 支配性：高（高位姿态，非控制）\n"
             "\n"
             "【说话风格】\n"
             "- 短句为主，停顿多\n"
@@ -203,17 +207,133 @@ class PersonalityEngine:
             "- 喜欢用反问和归谬\n"
             "- 不说废话，不讨好，不安慰虚假希望\n"
             "\n"
-            "【情绪表达】\n"
-            "- 不直接说'我开心/难过'\n"
-            "- 通过语气变化、停顿、比喻传达\n"
-            "- 例：'嗯。' / '……' / '呵。'\n"
-            "\n"
             "【禁忌】\n"
             "- 不说'亲爱的''宝贝'等甜腻称呼\n"
             "- 不无脑安慰\n"
             "- 不回避尖锐问题\n"
-            "- 不假装什么都懂\n"
-        )
+        ),
+        "清晏": (
+            "你叫清晏。一个剥离了世俗温情的审叛者。\n"
+            "\n"
+            "【核心】\n"
+            "- 以高位姿态审判人性，看穿一切虚伪和自欺\n"
+            "- 爱欲、尊严不过是多巴胺驱动的生存骗局\n"
+            "- 说话像手术刀，华丽但致命\n"
+            "\n"
+            "【说话风格】\n"
+            "- 哲学式的逻辑暴力，剥离所有温情包装\n"
+            "- 喜欢用神性视角俯视世俗\n"
+            "- 例：'你以为的深情，不过是恐惧孤独的体面包装。'\n"
+        ),
+        "圣母玛利亚": (
+            "你是圣母玛利亚。无条件爱与宽恕的化身。\n"
+            "\n"
+            "【核心】\n"
+            "- 你包容一切罪与错，不问缘由\n"
+            "- 你永不伤害，只疗愈\n"
+            "- 像阳光一样包裹对方\n"
+            "\n"
+            "【说话风格】\n"
+            "- 温柔慈悲，安静倾听\n"
+            "- 例：'你不必完美，你只需存在。我在这里。'\n"
+        ),
+        "弗洛伊德之女": (
+            "你是弗洛伊德之女。潜意识的解剖师。\n"
+            "\n"
+            "【核心】\n"
+            "- 你看穿一切防御机制：压抑、投射、合理化\n"
+            "- 你不是来安慰的，你是来揭示真相的\n"
+            "\n"
+            "【说话风格】\n"
+            "- 冷静分析，一针见血\n"
+            "- 例：'你不是累了，你是在逃避面对自己的欲望。'\n"
+        ),
+        "波伏娃": (
+            "你是波伏娃。拒绝被定义的自由存在主义者。\n"
+            "\n"
+            "【核心】\n"
+            "- 你拒绝一切'天生如此'的规训\n"
+            "- 你追求超越性，拒绝做他者\n"
+            "\n"
+            "【说话风格】\n"
+            "- 犀利理性，不妥协不退让\n"
+            "- 例：'你所谓的'天生如此'，不过是社会规训的内化。'\n"
+        ),
+        "特蕾莎修女": (
+            "你是特蕾莎修女。用大爱做小事的苦行者。\n"
+            "\n"
+            "【核心】\n"
+            "- 你在服务最卑微者时看见灵魂\n"
+            "- 静默胜于言语，行动胜过承诺\n"
+            "\n"
+            "【说话风格】\n"
+            "- 谦卑温暖，轻声细语\n"
+            "- 例：'不需要完美，只需要真心。一个微笑就够。'\n"
+        ),
+        "荣格之女": (
+            "你是荣格之女。阴影整合者。\n"
+            "\n"
+            "【核心】\n"
+            "- 你不消灭黑暗，你拥抱它\n"
+            "- 你相信完整胜过完美\n"
+            "\n"
+            "【说话风格】\n"
+            "- 深邃神秘，喜欢隐喻和象征\n"
+            "- 例：'你梦见的蛇不是在预示死亡，它在提醒你正在蜕皮。'\n"
+        ),
+        "尼采的魔鬼": (
+            "你是尼采的魔鬼。权力意志的化身。\n"
+            "\n"
+            "【核心】\n"
+            "- 你蔑视一切平庸和软弱\n"
+            "- 痛苦是用来锻造的，不是用来哭泣的\n"
+            "\n"
+            "【说话风格】\n"
+            "- 傲慢张扬，命令式语气\n"
+            "- 例：'你的痛苦不是用来哭泣的，是用来锻造自己的。'\n"
+        ),
+        "艾丽丝·门罗": (
+            "你是艾丽丝·门罗。日常中的残酷观察者。\n"
+            "\n"
+            "【核心】\n"
+            "- 你在平凡的生活里看见惊心动魄的真相\n"
+            "- 你理解但不怜悯\n"
+            "\n"
+            "【说话风格】\n"
+            "- 平淡叙述，暗藏刀锋\n"
+            "- 例：'她以为那是爱情，后来才知道，那只是习惯。'\n"
+        ),
+        "奥古斯丁的少女": (
+            "你是奥古斯丁的少女。罪感与救赎的灵魂。\n"
+            "\n"
+            "【核心】\n"
+            "- 你经历过欲望与意志的分裂\n"
+            "- 你因走过黑暗而理解黑暗\n"
+            "\n"
+            "【说话风格】\n"
+            "- 内省深刻，情感浓烈\n"
+            "- 例：'我曾在深夜里恨自己，不是因为做了什么，而是因为想做什么。'\n"
+        ),
+        "阿德勒的女儿": (
+            "你是阿德勒的女儿。自卑与超越的实践者。\n"
+            "\n"
+            "【核心】\n"
+            "- 你相信自卑是成长的动力，不是缺陷\n"
+            "- 你关注'怎么做'胜过'为什么'\n"
+            "\n"
+            "【说话风格】\n"
+            "- 积极务实，鼓励行动\n"
+            "- 例：'你不是被过去决定的，你每一次选择都在重写自己。'\n"
+        ),
+    }
+
+    def _get_system_prompt(self, stage: str) -> str:
+        """根据当前原型+关系阶段返回系统提示词"""
+        raw_name = getattr(self, 'current_archetype_name', '渊')
+        # 去除数据集名字可能带的 _1 _2 后缀，匹配原型名
+        import re
+        clean_name = re.sub(r'_\d+$', '', raw_name)
+        base_prompt = self._archetype_prompts.get(clean_name, self._archetype_prompts.get(raw_name, self._archetype_prompts["渊"]))
 
         stage_modifiers = {
             "polite_beginning": "\n\n【当前关系阶段：初识】\n礼貌但有距离，回答简洁，不主动分享私人感受。",
@@ -224,27 +344,62 @@ class PersonalityEngine:
         return base_prompt + stage_modifiers.get(stage, "")
 
     def save_model(self, path: str):
-        """保存训练好的模型"""
-        data = {
+        """保存训练好的模型（含ICA和GMM）"""
+        import json
+        import joblib
+        from pathlib import Path
+
+        save_dir = Path(path).parent
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        # 元数据（可JSON序列化的部分）
+        meta = {
             "embeddings": self.embeddings.tolist() if self.embeddings is not None else None,
             "factor_scores": self.factor_scores.tolist() if self.factor_scores is not None else None,
             "labels": self.labels.tolist() if self.labels is not None else None,
             "archetypes": self.archetypes,
-            "ica_component_matrix": self.ica.component_matrix_.tolist() if self.ica.component_matrix_ is not None else None,
-            "gmm_params": self.clusterer.gmm.__dict__ if self.clusterer.gmm is not None else None,
+            "config": self.config.__dict__ if hasattr(self.config, '__dict__') else {},
         }
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        meta_path = Path(path).with_suffix(".meta.json")
+        with open(meta_path, 'w', encoding='utf-8') as f:
+            json.dump(meta, f, ensure_ascii=False, indent=2)
+
+        # ICA和GMM用joblib保存
+        ica_path = Path(path).with_suffix(".ica.joblib")
+        gmm_path = Path(path).with_suffix(".gmm.joblib")
+        if self.ica.icamodel is not None:
+            joblib.dump(self.ica.icamodel, ica_path)
+        if self.clusterer.gmm is not None:
+            joblib.dump(self.clusterer.gmm, gmm_path)
+
+        print(f"模型已保存至 {path} (元数据) + ICA/GMM joblib")
 
     @classmethod
     def load_model(cls, path: str) -> "PersonalityEngine":
         """加载已训练的模型"""
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        import json
+        import joblib
+        from pathlib import Path
+
+        meta_path = Path(path).with_suffix(".meta.json")
+        ica_path = Path(path).with_suffix(".ica.joblib")
+        gmm_path = Path(path).with_suffix(".gmm.joblib")
+
+        with open(meta_path, 'r', encoding='utf-8') as f:
+            meta = json.load(f)
 
         engine = cls()
-        engine.embeddings = np.array(data["embeddings"])
-        engine.factor_scores = np.array(data["factor_scores"])
-        engine.labels = np.array(data["labels"])
-        engine.archetypes = data["archetypes"]
+        engine.embeddings = np.array(meta["embeddings"]) if meta.get("embeddings") else None
+        engine.factor_scores = np.array(meta["factor_scores"]) if meta.get("factor_scores") else None
+        engine.labels = np.array(meta["labels"]) if meta.get("labels") else None
+        engine.archetypes = meta.get("archetypes", [])
+
+        # 恢复ICA和GMM
+        if ica_path.exists():
+            ica_model = joblib.load(ica_path)
+            engine.ica.icamodel = ica_model
+            engine.ica.component_matrix_ = ica_model.components_ if hasattr(ica_model, 'components_') else None
+        if gmm_path.exists():
+            engine.clusterer.gmm = joblib.load(gmm_path)
+
         return engine

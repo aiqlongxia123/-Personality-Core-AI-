@@ -16,7 +16,7 @@ engine.train(descriptions, names)
 result = engine.embed("一个温柔但坚定的人")
 
 # 旋转人格
-morphed = engine.morph(seed_index=0, direction_factor=3, angle_deg=45)
+morphed = engine.morph(seed_index=0, direction_index=3, angle_deg=45)
 
 # 评分
 score = engine.score_pairing(0, 1)

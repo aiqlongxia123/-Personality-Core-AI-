@@ -37,9 +37,11 @@ class GMmClusterer:
         return self.gmm.means_
 
     def get_cluster_info(self, archetype_names: list[str]) -> list[dict]:
-        """获取每个聚类的详细信息"""
+        """获取每个聚类的详细信息（按簇内多数成员投票命名）"""
         if self.gmm is None or self.labels_ is None:
             raise RuntimeError("GMmClusterer未训练")
+
+        from collections import Counter
 
         info = []
         for i in range(self.n_clusters):
@@ -47,12 +49,21 @@ class GMmClusterer:
             count = int(mask.sum())
             if count == 0:
                 continue
+
+            # 按簇内多数成员的实际名字投票命名
+            member_indices = np.where(mask)[0]
+            member_names = [archetype_names[idx] for idx in member_indices]
+            name_counts = Counter(member_names)
+            majority_name = name_counts.most_common(1)[0][0]
+            purity = name_counts.most_common(1)[0][1] / count
+
             info.append({
                 "cluster_id": i,
-                "name": archetype_names[i] if i < len(archetype_names) else f"原型_{i}",
+                "name": majority_name,
                 "size": count,
+                "purity": round(purity, 3),
                 "center": self.get_cluster_centers()[i].tolist(),
-                "members": np.where(mask)[0].tolist(),
+                "members": member_indices.tolist(),
             })
         return info
 
