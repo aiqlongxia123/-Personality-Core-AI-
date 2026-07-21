@@ -55,7 +55,7 @@
 
 ```bash
 git clone https://github.com/aiqlongxia123/personality-core.git
-cd 渊
+cd personality-core
 
 python -m venv .venv
 .venv\Scripts\activate        # Windows
