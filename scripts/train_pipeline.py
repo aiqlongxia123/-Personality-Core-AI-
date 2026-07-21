@@ -4,20 +4,21 @@ from pathlib import Path
 import numpy as np
 
 from personality_core.engine import PersonalityEngine
-from personality_core.config import DEFAULT_CONFIG
+from personality_core.config import get_config
 
 
-def load_dataset(path: str) -> tuple[list[str], list[str]]:
-    """从JSON加载数据集：返回(descriptions, names)"""
+def load_dataset(path: str) -> tuple[list[str], list[str], list[str]]:
+    """从JSON加载数据集：返回(descriptions, names, parent_ids)"""
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     descriptions = [item["description"] for item in data["archetypes"]]
-    names = [item["id"] for item in data["archetypes"]]
-    return descriptions, names
+    names = [item["name"] for item in data["archetypes"]]
+    parent_ids = [item.get("parent_id", "") for item in data["archetypes"]]
+    return descriptions, names, parent_ids
 
 
 def main():
-    data_path = Path(__file__).parent.parent / "data" / "archetypes.json"
+    data_path = Path(__file__).parent.parent / "data" / "archetypes_extended.json"
 
     if not data_path.exists():
         print(f"找不到数据集: {data_path}")
@@ -25,12 +26,11 @@ def main():
         return
 
     print(f"加载数据集: {data_path}")
-    descriptions, names = load_dataset(str(data_path))
+    descriptions, names, parent_ids = load_dataset(str(data_path))
     print(f"共 {len(descriptions)} 个人格样本")
 
-    config = DEFAULT_CONFIG
-    engine = PersonalityEngine(config)
-    engine.train(descriptions, names)
+    engine = PersonalityEngine(get_config(n_factors=5))
+    engine.train(descriptions, names, parent_ids)
 
     # 保存模型
     model_path = Path(__file__).parent.parent / "models" / "personality_model.json"

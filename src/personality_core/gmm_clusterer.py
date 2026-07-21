@@ -36,12 +36,22 @@ class GMmClusterer:
             raise RuntimeError("GMmClusterer未训练")
         return self.gmm.means_
 
-    def get_cluster_info(self, archetype_names: list[str]) -> list[dict]:
-        """获取每个聚类的详细信息（按簇内多数成员投票命名）"""
+    def get_cluster_info(
+        self, archetype_names: list[str], parent_ids: list[str] = None
+    ) -> list[dict]:
+        """获取每个聚类的详细信息（按 parent_id 家族投票命名）。
+
+        parent_ids 为空时回退到名字去 _N 后缀的朴素投票。
+        """
         if self.gmm is None or self.labels_ is None:
             raise RuntimeError("GMmClusterer未训练")
 
+        import re
         from collections import Counter
+
+        # 构建 parent_id 映射
+        if parent_ids is None:
+            parent_ids = [re.sub(r'_\d+$', '', n) for n in archetype_names]
 
         info = []
         for i in range(self.n_clusters):
@@ -50,18 +60,30 @@ class GMmClusterer:
             if count == 0:
                 continue
 
-            # 按簇内多数成员的实际名字投票命名
             member_indices = np.where(mask)[0]
             member_names = [archetype_names[idx] for idx in member_indices]
-            name_counts = Counter(member_names)
-            majority_name = name_counts.most_common(1)[0][0]
-            purity = name_counts.most_common(1)[0][1] / count
+            member_parents = [parent_ids[idx] for idx in member_indices]
+
+            # 按 parent_id 投票
+            parent_counts = Counter(member_parents)
+            majority_parent, majority_parent_count = parent_counts.most_common(1)[0]
+            purity = majority_parent_count / count
+
+            # 该簇中属于多数家族的成员里，取原始名字最多的那个
+            family_names = [
+                archetype_names[idx] for idx in member_indices
+                if parent_ids[idx] == majority_parent
+            ]
+            family_name_counts = Counter(family_names)
+            display_name = family_name_counts.most_common(1)[0][0]
 
             info.append({
                 "cluster_id": i,
-                "name": majority_name,
+                "name": display_name,
+                "parent_id": majority_parent,
                 "size": count,
                 "purity": round(purity, 3),
+                "family": majority_parent,
                 "center": self.get_cluster_centers()[i].tolist(),
                 "members": member_indices.tolist(),
             })

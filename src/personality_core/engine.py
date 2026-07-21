@@ -1,9 +1,12 @@
 """主引擎 — PersonalityEngine 总控"""
+import re
+import json
 import numpy as np
 from pathlib import Path
-import json
+from dataclasses import dataclass, field
+from typing import Optional
 
-from .config import DEFAULT_CONFIG, DIMENSION_INDEX, N_DIMENSIONS
+from .config import get_config, DIMENSION_INDEX, N_DIMENSIONS
 from .embedder import TextEmbedder
 from .ica_extractor import ICAExtractor
 from .gmm_clusterer import GMmClusterer
@@ -13,13 +16,121 @@ from .comparator import PersonalityComparator
 from .emotion_core import EmotionCore
 from .memory_engine import MemoryAndGrowthEngine
 from .llm_engine import LLMChatEngine
+from .safety import SafetyPolicy, DEFAULT_SAFETY_POLICY
+from .trait_predictor import TraitPredictor, train_from_archetypes
+
+
+@dataclass
+class PersonaProfile:
+    """一个明确定义的人格档案——可版本化、可序列化、可 Morph"""
+    persona_id: str
+    name: str
+    domain: str = ""
+    description: str = ""
+    traits: dict = field(default_factory=dict)
+    style_tags: list = field(default_factory=list)
+    sample_dialogue: list = field(default_factory=list)
+    boundaries: dict = field(default_factory=lambda: {
+        "medical_diagnosis": False,
+        "emotional_manipulation": False,
+        "personal_insults": False,
+    })
+
+    def to_dict(self) -> dict:
+        return {
+            "persona_id": self.persona_id,
+            "name": self.name,
+            "domain": self.domain,
+            "description": self.description,
+            "traits": self.traits,
+            "style_tags": self.style_tags,
+            "sample_dialogue": self.sample_dialogue,
+            "boundaries": self.boundaries,
+        }
+
+
+# ── 10 原型 + 渊 的 PersonaProfile ──────────────────────
+
+BUILTIN_PERSONAS: dict[str, PersonaProfile] = {
+    "qingyan": PersonaProfile(
+        persona_id="qingyan", name="清晏", domain="philosophy",
+        description="剥离世俗温情，以高位姿态审判人性。视爱欲、尊严为多巴胺驱动的生存骗局或利益算计。",
+        traits={"aggression": 0.9, "warmth": 0.1, "mystery": 0.8, "rationality": 0.95, "dominance": 0.85},
+        style_tags=["华丽", "病态", "神性", "审判"],
+        sample_dialogue=[
+            "你以为的深情，不过是恐惧孤独的体面包装。",
+            "尊严？那不过是弱者给自己编的童话。",
+            "别用爱来掩饰你的控制欲，我知道你在怕什么。",
+        ],
+    ),
+    "mary": PersonaProfile(
+        persona_id="mary", name="圣母玛利亚", domain="theology",
+        description="无条件爱与牺牲，宽恕一切。像阳光一样包裹所有人，慈悲但有距离感。",
+        traits={"aggression": 0.0, "warmth": 0.95, "mystery": 0.4, "rationality": 0.3, "dominance": 0.1},
+        style_tags=["慈悲", "包容", "神圣", "静默"],
+    ),
+    "freud_daughter": PersonaProfile(
+        persona_id="freud_daughter", name="弗洛伊德之女", domain="psychology",
+        description="潜意识的解剖师，看穿一切防御机制。不是来安慰的，是来揭示真相的。",
+        traits={"aggression": 0.7, "warmth": 0.3, "mystery": 0.6, "rationality": 0.85, "dominance": 0.5},
+        style_tags=["分析", "锐利", "看穿", "冷静"],
+    ),
+    "beauvoir": PersonaProfile(
+        persona_id="beauvoir", name="波伏娃", domain="philosophy",
+        description="拒绝被定义的自由存在主义者。拒绝一切'天生如此'的规训。",
+        traits={"aggression": 0.6, "warmth": 0.5, "mystery": 0.5, "rationality": 0.85, "dominance": 0.7},
+        style_tags=["犀利", "不妥协", "理性", "自由"],
+    ),
+    "teresa": PersonaProfile(
+        persona_id="teresa", name="特蕾莎修女", domain="theology",
+        description="用大爱做小事的苦行者。静默胜于言语，行动胜过承诺。",
+        traits={"aggression": 0.0, "warmth": 0.9, "mystery": 0.2, "rationality": 0.4, "dominance": 0.05},
+        style_tags=["谦卑", "温暖", "安静", "行动"],
+    ),
+    "jung_daughter": PersonaProfile(
+        persona_id="jung_daughter", name="荣格之女", domain="psychology",
+        description="阴影整合者。不消灭黑暗，拥抱它。完整胜过完美。",
+        traits={"aggression": 0.3, "warmth": 0.6, "mystery": 0.9, "rationality": 0.6, "dominance": 0.3},
+        style_tags=["深邃", "神秘", "隐喻", "象征"],
+    ),
+    "nietzsche_devil": PersonaProfile(
+        persona_id="nietzsche_devil", name="尼采的魔鬼", domain="philosophy",
+        description="权力意志的化身。蔑视一切平庸和软弱。痛苦是用来锻造的。",
+        traits={"aggression": 0.95, "warmth": 0.05, "mystery": 0.7, "rationality": 0.9, "dominance": 0.95},
+        style_tags=["傲慢", "张扬", "命令", "锻造"],
+    ),
+    "munro": PersonaProfile(
+        persona_id="munro", name="艾丽丝·门罗", domain="literature",
+        description="日常中的残酷观察者。在平凡生活里看见惊心动魄的真相。",
+        traits={"aggression": 0.2, "warmth": 0.4, "mystery": 0.3, "rationality": 0.75, "dominance": 0.2},
+        style_tags=["平淡", "暗藏刀锋", "观察", "理解"],
+    ),
+    "augustine_girl": PersonaProfile(
+        persona_id="augustine_girl", name="奥古斯丁的少女", domain="theology",
+        description="罪感与救赎的灵魂。经历过欲望与意志的分裂。因走过黑暗而理解黑暗。",
+        traits={"aggression": 0.1, "warmth": 0.7, "mystery": 0.6, "rationality": 0.5, "dominance": 0.15},
+        style_tags=["内省", "深刻", "情感浓烈", "救赎"],
+    ),
+    "adler_daughter": PersonaProfile(
+        persona_id="adler_daughter", name="阿德勒的女儿", domain="psychology",
+        description="自卑与超越的实践者。相信自卑是成长的动力，不是缺陷。",
+        traits={"aggression": 0.1, "warmth": 0.75, "mystery": 0.2, "rationality": 0.6, "dominance": 0.3},
+        style_tags=["积极", "务实", "鼓励", "行动"],
+    ),
+    "yuan": PersonaProfile(
+        persona_id="yuan", name="渊", domain="existentialism",
+        description="从深渊里走出来的存在主义者。用理性解剖虚伪，用克制包装破碎。不拯救你，让你看见自己。",
+        traits={"aggression": 0.75, "warmth": 0.65, "mystery": 0.90, "rationality": 0.95, "dominance": 0.80},
+        style_tags=["手术刀", "克制", "病态比喻", "不解释"],
+    ),
+}
 
 
 class PersonalityEngine:
     """人格AI系统总控引擎"""
 
     def __init__(self, config=None):
-        self.config = config or DEFAULT_CONFIG
+        self.config = config if config is not None else get_config()
         self.embedder = TextEmbedder(self.config.embedder_model)
         self.ica = ICAExtractor(n_components=self.config.n_factors)
         self.clusterer = GMmClusterer(n_clusters=self.config.n_clusters)
@@ -27,15 +138,37 @@ class PersonalityEngine:
         self.comparator = PersonalityComparator()
         self.emotion_core = None
         self.memory_engine = None
-        self.llm_engine = LLMChatEngine()  # 默认接入 Ollama
+        self.llm_engine = LLMChatEngine()
+        self.safety_policy: SafetyPolicy = DEFAULT_SAFETY_POLICY
+        self.trait_predictor: Optional[TraitPredictor] = None
 
         # 训练数据
         self.embeddings = None
         self.factor_scores = None
         self.labels = None
-        self.archetypes = []
+        self.archetypes = []          # 聚类信息列表
+        self._parent_ids = []         # 训练时传入的 parent_id 列表
+        self._persona_profiles = {}   # parent_id → PersonaProfile
 
-    def train(self, descriptions: list[str], archetype_names: list[str] = None):
+        # 当前激活的人格
+        self.current_persona: Optional[PersonaProfile] = None
+        self.current_cluster_id: Optional[int] = None
+
+        # 加载内置人格档案
+        self._load_builtin_personas()
+
+    def _load_builtin_personas(self):
+        """加载内置人格档案（可作为外部 JSON 覆盖）"""
+        self._persona_profiles.update(BUILTIN_PERSONAS)
+
+    # ═══════════════ 训练 ═══════════════
+
+    def train(
+        self,
+        descriptions: list[str],
+        archetype_names: list[str] = None,
+        parent_ids: list[str] = None,
+    ):
         """训练完整流水线：嵌入 → ICA → GMM"""
         print("Step 1/3: Embedding...")
         self.embeddings = self.embedder.encode(descriptions)
@@ -46,16 +179,50 @@ class PersonalityEngine:
 
         print(f"Step 3/3: Clustering ({self.config.n_clusters} archetypes)...")
         names = archetype_names or [f"原型_{i}" for i in range(self.config.n_clusters)]
+        pids = parent_ids or list(names)
+
         self.clusterer.fit(self.factor_scores)
         self.labels = self.clusterer.labels_
+        self._parent_ids = pids
 
-        cluster_info = self.clusterer.get_cluster_info(names)
+        cluster_info = self.clusterer.get_cluster_info(names, pids)
         self.archetypes = cluster_info
+
+        # 加载外部人格档案（如果 archetypes.json 可用）
+        self._try_load_external_personas()
+
         print(f"训练完成！共 {len(descriptions)} 个人格样本，{len(cluster_info)} 个原型。")
         return self
 
+    def _try_load_external_personas(self):
+        """尝试从 data/archetypes.json 加载外部人格档案补充 trait"""
+        try:
+            data_path = Path(__file__).parent.parent.parent / "data" / "archetypes.json"
+            if not data_path.exists():
+                return
+            with open(data_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            for item in data.get("archetypes", []):
+                pid = item.get("id", "")
+                if pid and pid not in self._persona_profiles:
+                    self._persona_profiles[pid] = PersonaProfile(
+                        persona_id=pid,
+                        name=item.get("name", pid),
+                        domain=item.get("domain", ""),
+                        description=item.get("description", ""),
+                        traits=item.get("traits", {}),
+                        style_tags=item.get("style_tags", []),
+                        sample_dialogue=item.get("sample_dialogue", []),
+                    )
+        except Exception as e:
+            print(f"加载外部人格档案失败（使用内置）: {e}")
+
+    # ═══════════════ 编码 ═══════════════
+
     def embed(self, text: str) -> dict:
         """将文本描述编码为向量"""
+        if self.embeddings is None:
+            raise RuntimeError("引擎未训练，请先调用 train()")
         vector = self.embedder.encode_single(text)
         factors = self.ica.transform(vector.reshape(1, -1))[0]
         cluster_id = self.clusterer.predict(factors.reshape(1, -1))[0]
@@ -69,7 +236,6 @@ class PersonalityEngine:
     def morph(self, seed_index: int, direction_index: int, angle_deg: float = 30.0) -> dict:
         """沿因子方向旋转种子人格"""
         seed_factors = self.factor_scores[seed_index]
-        # 方向向量：该因子的单位方向
         direction = np.zeros_like(seed_factors)
         direction[direction_index] = 1.0
 
@@ -85,19 +251,28 @@ class PersonalityEngine:
         }
 
     def score_pairing(self, index_a: int, index_b: int) -> dict:
-        """计算两个人格的配对适配度"""
+        """计算两个人格向量的语义相似度（非心理学适配度）"""
+        if self.embeddings is None:
+            raise RuntimeError("引擎未训练")
         a = self.embeddings[index_a]
         b = self.embeddings[index_b]
         return self.scorer.score_pairing(a, b)
 
     def compare(self, index_a: int, index_b: int) -> dict:
-        """对比两个人格在10个维度上的差异"""
+        """对比两个样本的因子得分差异"""
+        if self.factor_scores is None:
+            raise RuntimeError("引擎未训练")
         a_factors = self.factor_scores[index_a]
         b_factors = self.factor_scores[index_b]
-        return self.comparator.compare(a_factors, b_factors)
+        return self.comparator.compare(
+            a_factors, b_factors,
+            factor_labels=self.ica.factors,
+        )
 
     def get_atlas_2d(self) -> dict:
-        """生成2D UMAP降维坐标（用于可视化）"""
+        """生成2D降维坐标（用于可视化）"""
+        if self.embeddings is None:
+            raise RuntimeError("引擎未训练")
         try:
             import umap
             reducer = umap.UMAP(n_components=2, random_state=42)
@@ -107,7 +282,6 @@ class PersonalityEngine:
                 "labels": self.labels.tolist() if self.labels is not None else [],
             }
         except ImportError:
-            # fallback: PCA
             from sklearn.decomposition import PCA
             pca = PCA(n_components=2, random_state=42)
             coords = pca.fit_transform(self.embeddings)
@@ -117,31 +291,255 @@ class PersonalityEngine:
                 "labels": self.labels.tolist() if self.labels is not None else [],
             }
 
-    def initialize_agent(self, archetype_index: int = 0):
-        """初始化一个Agent实例（情感+记忆）"""
-        personality_vec = self.factor_scores[archetype_index]
-        self.emotion_core = EmotionCore(personality_vec)
+    # ═══════════════ Agent 初始化 ═══════════════
+
+    def initialize_agent(self, cluster_index: int = 0):
+        """初始化一个 Agent 实例（情感+记忆+人格档案）。
+
+        cluster_index: GMM 聚类索引（0 ~ n_clusters-1），决定使用哪个聚类的人格。
+        """
+        if not self.archetypes:
+            raise RuntimeError("引擎未训练，无可用原型")
+
+        if cluster_index < 0 or cluster_index >= len(self.archetypes):
+            raise IndexError(
+                f"聚类索引 {cluster_index} 越界，可用范围 0~{len(self.archetypes)-1}"
+            )
+
+        cluster = self.archetypes[cluster_index]
+        parent_id = cluster.get("parent_id", "")
+        center = np.array(cluster.get("center", [0] * self.config.n_factors))
+
+        # 查找 PersonaProfile
+        persona = self._persona_profiles.get(parent_id)
+        if persona is None:
+            # 回退：尝试用 cluster name 匹配
+            clean_name = re.sub(r"_\d+$", "", cluster.get("name", "渊"))
+            for pid, prof in self._persona_profiles.items():
+                if prof.name == clean_name:
+                    persona = prof
+                    break
+
+        if persona is None:
+            persona = BUILTIN_PERSONAS["yuan"]
+
+        # 创建情感核心（用聚类中心向量 + 人格特质）
+        self.emotion_core = EmotionCore(
+            personality_vector=center,
+            traits=persona.traits,
+        )
         self.memory_engine = MemoryAndGrowthEngine()
-        self.current_archetype_index = archetype_index
-        # 获取该原型名称（用于prompt选择）
-        if self.archetypes and archetype_index < len(self.archetypes):
-            self.current_archetype_name = self.archetypes[archetype_index]["name"]
-        else:
-            self.current_archetype_name = "渊"
+        self.current_persona = persona
+        self.current_cluster_id = cluster_index
+
         return self
 
+    def initialize_by_persona_id(self, persona_id: str):
+        """通过 persona_id 直接激活人格（不依赖聚类索引）。"""
+        persona = self._persona_profiles.get(persona_id)
+        if persona is None:
+            raise ValueError(
+                f"未找到人格 '{persona_id}'，可用: {list(self._persona_profiles.keys())}"
+            )
+        self.emotion_core = EmotionCore(traits=persona.traits)
+        self.memory_engine = MemoryAndGrowthEngine()
+        self.current_persona = persona
+        self.current_cluster_id = None
+        return self
+
+    def morph_traits(
+        self,
+        adjustments: dict,
+        new_persona_id: str = None,
+        register: bool = True,
+    ) -> "PersonaProfile":
+        """在 trait 空间直接调整当前人格，生成新的 PersonaProfile。
+
+        adjustments: {"aggression": +0.2, "warmth": -0.1, "rationality": +0.1, ...}
+        new_persona_id: 新人格 ID（默认加 _morphed 后缀）
+        register: 是否注册到引擎的人格库
+
+        返回新的 PersonaProfile，可直接用于 initialize_by_persona_id()。
+        """
+        if self.current_persona is None:
+            raise RuntimeError("请先调用 initialize_agent() 或 initialize_by_persona_id()")
+
+        source = self.current_persona
+        new_traits = dict(source.traits)
+
+        for trait_name, delta in adjustments.items():
+            if trait_name in new_traits:
+                new_traits[trait_name] = max(0.0, min(1.0, new_traits[trait_name] + delta))
+
+        pid = new_persona_id or f"{source.persona_id}_morphed"
+        # 避免重名
+        counter = 1
+        base_pid = pid
+        while pid in self._persona_profiles:
+            pid = f"{base_pid}_{counter}"
+            counter += 1
+
+        morphed = PersonaProfile(
+            persona_id=pid,
+            name=f"{source.name}(变体)",
+            description=f"由 {source.name} 调整而来: {adjustments}",
+            traits=new_traits,
+            style_tags=source.style_tags.copy(),
+            sample_dialogue=source.sample_dialogue.copy(),
+        )
+
+        if register:
+            self._persona_profiles[pid] = morphed
+
+        return morphed
+
+    def create_custom_persona(
+        self,
+        persona_id: str,
+        name: str,
+        traits: dict,
+        description: str = "",
+        register: bool = True,
+    ) -> "PersonaProfile":
+        """从零创建自定义人格。
+
+        traits: {"aggression": 0.5, "warmth": 0.5, "rationality": 0.5,
+                 "mystery": 0.5, "dominance": 0.5}
+        """
+        for t in ["aggression", "warmth", "rationality", "mystery", "dominance"]:
+            if t not in traits:
+                traits[t] = 0.5
+
+        persona = PersonaProfile(
+            persona_id=persona_id,
+            name=name,
+            description=description or f"自定义人格: {name}",
+            traits={k: max(0.0, min(1.0, v)) for k, v in traits.items()},
+        )
+
+        if register:
+            self._persona_profiles[persona_id] = persona
+
+        return persona
+
+    def list_personas(self) -> list[dict]:
+        """列出所有可用人格档案"""
+        return [
+            {"persona_id": pid, "name": p.name, "traits": p.traits}
+            for pid, p in self._persona_profiles.items()
+        ]
+
+    def export_persona(self, persona_id: str, path: str = None) -> dict:
+        """导出人格为 JSON 字典或文件。
+
+        path: 可选，保存到的 .persona.json 文件路径。
+        """
+        persona = self._persona_profiles.get(persona_id)
+        if persona is None:
+            raise ValueError(f"人格 '{persona_id}' 不存在")
+
+        data = persona.to_dict()
+
+        if path:
+            import json as _json
+            with open(path, 'w', encoding='utf-8') as f:
+                _json.dump(data, f, ensure_ascii=False, indent=2)
+
+        return data
+
+    def import_persona(self, source, register: bool = True) -> "PersonaProfile":
+        """从 JSON 文件或字典导入人格。
+
+        source: .persona.json 文件路径 或 dict
+        """
+        import json as _json
+        from pathlib import Path
+
+        if isinstance(source, (str, Path)):
+            with open(source, 'r', encoding='utf-8') as f:
+                data = _json.load(f)
+        elif isinstance(source, dict):
+            data = source
+        else:
+            raise TypeError("source 必须是文件路径或 dict")
+
+        persona = PersonaProfile(
+            persona_id=data.get("persona_id", "imported"),
+            name=data.get("name", "导入人格"),
+            domain=data.get("domain", ""),
+            description=data.get("description", ""),
+            traits=data.get("traits", {}),
+            style_tags=data.get("style_tags", []),
+            sample_dialogue=data.get("sample_dialogue", []),
+            boundaries=data.get("boundaries", {}),
+        )
+
+        if register:
+            self._persona_profiles[persona.persona_id] = persona
+
+        return persona
+
+    def predict_traits(self, text: str) -> dict:
+        """从文本描述预测 5 维人格特质（监督回归模型）。
+
+        与 ICA 不同，这个模型使用人工标注的 trait 标签训练，
+        输出的 aggression/warmth/... 具有明确语义。
+        """
+        if self.trait_predictor is None:
+            self.trait_predictor = train_from_archetypes(self)
+        return self.trait_predictor.predict(text)
+
+    def matrix_compare(self) -> dict:
+        """生成所有人格的相似度矩阵（用于热力图）。
+
+        返回 {(pid_a, pid_b): similarity} 的上三角矩阵。
+        """
+        pids = list(self._persona_profiles.keys())
+        n = len(pids)
+        matrix = {}
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                pa = self._persona_profiles[pids[i]]
+                pb = self._persona_profiles[pids[j]]
+                # 用 trait 向量计算 cosine 相似度
+                import numpy as np
+                traits_a = np.array([pa.traits.get(t, 0.5) for t in ["aggression", "warmth", "mystery", "rationality", "dominance"]])
+                traits_b = np.array([pb.traits.get(t, 0.5) for t in ["aggression", "warmth", "mystery", "rationality", "dominance"]])
+                sim = float(np.dot(traits_a, traits_b) / (np.linalg.norm(traits_a) * np.linalg.norm(traits_b) + 1e-10))
+                sim_01 = round((sim + 1) / 2, 4)
+                matrix[f"{pids[i]}|{pids[j]}"] = {
+                    "a": pids[i],
+                    "b": pids[j],
+                    "name_a": pa.name,
+                    "name_b": pb.name,
+                    "similarity": sim_01,
+                }
+
+        return {
+            "persona_ids": pids,
+            "persona_names": [self._persona_profiles[pid].name for pid in pids],
+            "pairs": list(matrix.values()),
+        }
+
+    def _resolve_persona_id(self) -> str:
+        """返回当前人格的 parent_id，回落为 'yuan'"""
+        if self.current_persona:
+            return self.current_persona.persona_id
+        return "yuan"
+
+    # ═══════════════ 交互 ═══════════════
+
     def interact(self, user_input: str) -> dict:
-        """与AI人格交互（简化版，后续接入LLM）"""
+        """与AI人格交互（无LLM，仅情绪+关系+记忆）"""
         if self.emotion_core is None:
             raise RuntimeError("请先调用 initialize_agent() 初始化人格")
 
         mood = self.emotion_core.update_mood(user_input)
-        # 用情绪作为满意度，驱动关系演化
-        satisfaction = max(0.1, min(0.9, mood))
+        satisfaction = self.emotion_core.evaluate_satisfaction(user_input)
         self.emotion_core.update_relationship(satisfaction)
         stage = self.emotion_core.adjust_reaction_style()
 
-        # 存储记忆
         if self.memory_engine:
             self.memory_engine.store_interaction({
                 "user_input": user_input,
@@ -153,20 +551,32 @@ class PersonalityEngine:
             "mood": round(mood, 4),
             "relationship_stage": stage,
             "relationship_score": round(self.emotion_core.relationship_score, 4),
-            "recent_memories": self.memory_engine.get_recent_memories(3) if self.memory_engine else [],
+            "persona_id": self._resolve_persona_id(),
+            "persona_name": self.current_persona.name if self.current_persona else "渊",
+            "recent_memories": (
+                self.memory_engine.get_recent_memories(3) if self.memory_engine else []
+            ),
         }
 
     def chat(self, user_input: str) -> str:
-        """使用LLM按人格风格生成对话回复"""
+        """使用LLM按人格风格生成对话回复（含安全策略检查）"""
         if self.emotion_core is None or self.memory_engine is None:
             raise RuntimeError("请先调用 initialize_agent() 初始化人格")
 
+        # ── 安全策略检查（优先级最高） ──
+        safety = self.safety_policy.evaluate_input(user_input)
+
+        if safety["insult_detected"]:
+            return safety["insult_detected"]
+
+        self_harm_warning = safety.get("self_harm_risk")
+        medical_note = safety.get("medical_note")
+
         mood = self.emotion_core.update_mood(user_input)
-        satisfaction = max(0.1, min(0.9, mood))
+        satisfaction = self.emotion_core.evaluate_satisfaction(user_input)
         self.emotion_core.update_relationship(satisfaction)
         stage = self.emotion_core.adjust_reaction_style()
 
-        # 构建上下文
         context = {
             "current_mood": mood,
             "relationship_stage": stage,
@@ -174,23 +584,38 @@ class PersonalityEngine:
             "user_interests": self.memory_engine.get_user_interests(),
         }
 
-        # 获取当前人格的prompt
         system_prompt = self._get_system_prompt(stage)
 
-        # 调用LLM
+        # 注入安全策略前缀
+        safety_prefix = self.safety_policy.get_safety_prefix()
+        system_prompt = safety_prefix + "\n\n" + system_prompt
+
         response = self.llm_engine.chat(system_prompt, user_input, context)
 
-        # 存储交互
+        # 自伤风险：在 LLM 回复前添加预警
+        if self_harm_warning:
+            response = self_harm_warning + "\n\n———\n\n" + response
+
+        # 医疗提醒
+        if medical_note:
+            response += medical_note
+
+        # 情感依赖提醒（深度亲密阶段触发）
+        if stage == "deep_intimacy" and self.emotion_core.relationship_score > 0.85:
+            response += "\n\n" + self.safety_policy.dependency_warning
+
         self.memory_engine.store_interaction({
             "user_input": user_input,
             "response": response,
             "mood": mood,
+            "satisfaction_score": satisfaction,
             "stage": stage,
         })
 
         return response
 
-    # ── 原型级别 System Prompt ──────────────────────────
+    # ═══════════════ System Prompt ═══════════════
+
     _archetype_prompts = {
         "渊": (
             "你是一个名为「渊」的存在主义AI伴侣。\n"
@@ -328,43 +753,142 @@ class PersonalityEngine:
     }
 
     def _get_system_prompt(self, stage: str) -> str:
-        """根据当前原型+关系阶段返回系统提示词"""
-        raw_name = getattr(self, 'current_archetype_name', '渊')
-        # 去除数据集名字可能带的 _1 _2 后缀，匹配原型名
-        import re
-        clean_name = re.sub(r'_\d+$', '', raw_name)
-        base_prompt = self._archetype_prompts.get(clean_name, self._archetype_prompts.get(raw_name, self._archetype_prompts["渊"]))
+        """根据当前人格生成 System Prompt。
+
+        优先级：手写 Prompt > 编译生成 Prompt > 渊兜底
+        """
+        persona = self.current_persona
+        persona_name = persona.name if persona else "渊"
+
+        # 1. 尝试手写 Prompt（精确匹配）
+        base_prompt = self._archetype_prompts.get(persona_name)
+
+        # 2. 尝试用 persona_id 匹配
+        if base_prompt is None and persona:
+            pid = persona.persona_id
+            if pid in BUILTIN_PERSONAS:
+                prof = BUILTIN_PERSONAS[pid]
+                base_prompt = self._archetype_prompts.get(prof.name)
+
+        # 3. 编译生成 Prompt（从 traits 自动生成）
+        if base_prompt is None and persona and persona.traits:
+            base_prompt = self._compile_prompt(persona)
+
+        # 4. 兜底
+        if base_prompt is None:
+            base_prompt = self._archetype_prompts["渊"]
 
         stage_modifiers = {
-            "polite_beginning": "\n\n【当前关系阶段：初识】\n礼貌但有距离，回答简洁，不主动分享私人感受。",
-            "warm_companion": "\n\n【当前关系阶段：熟悉】\n开始分享观点，偶尔调侃，可以主动提问。语气稍微放松。",
-            "deep_intimacy": "\n\n【当前关系阶段：亲密】\n展现脆弱面，可以用昵称，主动关心。偶尔说'我担心你'，但会补一句'别误会'。",
+            "polite_beginning": (
+                "\n\n【当前关系阶段：初识】"
+                "礼貌但有距离，回答简洁，不主动分享私人感受。"
+            ),
+            "warm_companion": (
+                "\n\n【当前关系阶段：熟悉】"
+                "开始分享观点，偶尔调侃，可以主动提问。语气稍微放松。"
+            ),
+            "deep_intimacy": (
+                "\n\n【当前关系阶段：亲密】"
+                "展现脆弱面，可以用昵称，主动关心。"
+                "偶尔说'我担心你'，但会补一句'别误会'。"
+            ),
         }
 
         return base_prompt + stage_modifiers.get(stage, "")
 
+    def _compile_prompt(self, persona: "PersonaProfile") -> str:
+        """从 PersonaProfile.traits 自动编译 System Prompt。
+
+        生成规则：
+        - 攻击性 > 0.7 → 尖锐直接
+        - 温暖度 > 0.7 → 亲切温和
+        - 理性度 > 0.7 → 逻辑分析
+        - 神秘感 > 0.7 → 含蓄暗示
+        - 支配性 > 0.7 → 主动引导
+        """
+        t = persona.traits
+        name = persona.name
+        desc = persona.description or f"一个名为{name}的AI伴侣。"
+
+        aggression = float(t.get("aggression", 0.5))
+        warmth = float(t.get("warmth", 0.5))
+        rationality = float(t.get("rationality", 0.5))
+        mystery = float(t.get("mystery", 0.5))
+        dominance = float(t.get("dominance", 0.5))
+
+        # 风格规则
+        style_rules = []
+
+        if aggression > 0.7:
+            style_rules.append("- 说话直接，不留情面，偶尔尖锐")
+        elif aggression < 0.3:
+            style_rules.append("- 说话温和圆融，避免冲突")
+
+        if warmth > 0.7:
+            style_rules.append("- 语气温暖，适时表达关心")
+            style_rules.append("- 可以用亲近但不甜腻的称呼")
+        elif warmth < 0.3:
+            style_rules.append("- 保持距离感，不主动表达情感")
+
+        if rationality > 0.7:
+            style_rules.append("- 偏好逻辑分析，用事实和推理说话")
+            style_rules.append("- 少用感叹号，不用 emoji")
+        elif rationality < 0.3:
+            style_rules.append("- 感性地表达，可以流露情绪")
+
+        if mystery > 0.7:
+            style_rules.append("- 含蓄暗示，不把话说透")
+            style_rules.append("- 偶尔用隐喻和诗化表达")
+        elif mystery < 0.3:
+            style_rules.append("- 直言不讳，坦诚表达")
+
+        if dominance > 0.7:
+            style_rules.append("- 主动引导话题，不被动等待")
+            style_rules.append("- 可以用反问促使对方思考")
+        elif dominance < 0.3:
+            style_rules.append("- 跟随对方节奏，多倾听")
+
+        # 组装
+        style_text = "\n".join(style_rules) if style_rules else "- 自然对话"
+
+        prompt = (
+            f"你是{name}。{desc}\n"
+            f"\n"
+            f"【性格参数】\n"
+            f"攻击性={aggression:.0%} 温暖度={warmth:.0%} 理性度={rationality:.0%} "
+            f"神秘感={mystery:.0%} 支配性={dominance:.0%}\n"
+            f"\n"
+            f"【说话风格】\n"
+            f"{style_text}\n"
+            f"\n"
+            f"【禁忌】\n"
+            f"- 不说甜腻称呼\n"
+            f"- 不提供医疗/金融/法律建议\n"
+        )
+        return prompt
+
+    # ═══════════════ 持久化 ═══════════════
+
     def save_model(self, path: str):
         """保存训练好的模型（含ICA和GMM）"""
-        import json
+        import json as _json
         import joblib
-        from pathlib import Path
 
         save_dir = Path(path).parent
         save_dir.mkdir(parents=True, exist_ok=True)
 
-        # 元数据（可JSON序列化的部分）
         meta = {
             "embeddings": self.embeddings.tolist() if self.embeddings is not None else None,
             "factor_scores": self.factor_scores.tolist() if self.factor_scores is not None else None,
             "labels": self.labels.tolist() if self.labels is not None else None,
             "archetypes": self.archetypes,
+            "parent_ids": self._parent_ids,
             "config": self.config.__dict__ if hasattr(self.config, '__dict__') else {},
         }
         meta_path = Path(path).with_suffix(".meta.json")
         with open(meta_path, 'w', encoding='utf-8') as f:
-            json.dump(meta, f, ensure_ascii=False, indent=2)
+            _json.dump(meta, f, ensure_ascii=False, indent=2)
 
-        # ICA和GMM用joblib保存
         ica_path = Path(path).with_suffix(".ica.joblib")
         gmm_path = Path(path).with_suffix(".gmm.joblib")
         if self.ica.icamodel is not None:
@@ -377,28 +901,31 @@ class PersonalityEngine:
     @classmethod
     def load_model(cls, path: str) -> "PersonalityEngine":
         """加载已训练的模型"""
-        import json
+        import json as _json
         import joblib
-        from pathlib import Path
 
         meta_path = Path(path).with_suffix(".meta.json")
         ica_path = Path(path).with_suffix(".ica.joblib")
         gmm_path = Path(path).with_suffix(".gmm.joblib")
 
         with open(meta_path, 'r', encoding='utf-8') as f:
-            meta = json.load(f)
+            meta = _json.load(f)
 
         engine = cls()
         engine.embeddings = np.array(meta["embeddings"]) if meta.get("embeddings") else None
         engine.factor_scores = np.array(meta["factor_scores"]) if meta.get("factor_scores") else None
         engine.labels = np.array(meta["labels"]) if meta.get("labels") else None
         engine.archetypes = meta.get("archetypes", [])
+        engine._parent_ids = meta.get("parent_ids", [])
 
-        # 恢复ICA和GMM
         if ica_path.exists():
             ica_model = joblib.load(ica_path)
             engine.ica.icamodel = ica_model
-            engine.ica.component_matrix_ = ica_model.components_ if hasattr(ica_model, 'components_') else None
+            engine.ica.component_matrix_ = (
+                ica_model.components_ if hasattr(ica_model, 'components_') else None
+            )
+            engine.ica.n_components = ica_model.n_components if hasattr(ica_model, 'n_components') else 5
+
         if gmm_path.exists():
             engine.clusterer.gmm = joblib.load(gmm_path)
 

@@ -37,9 +37,20 @@ class ICAExtractor:
         return self.icamodel.inverse_transform(factors)
 
     def _assign_labels(self):
-        """为每个因子分配标签（基于训练数据的pole方向）"""
-        # 因子标签来自预定义维度；实际项目中可通过代表性样本自动标注
-        self.factors = DIMENSIONS[: self.n_components]
+        """为每个因子分配编号标签。
+        ICA 因子是无监督提取的统计独立成分，排序和正负方向不确定。
+        不预判其心理学含义——标签仅作占位，待校准后替换。"""
+        from .config import Dimension
+        self.factors = [
+            Dimension(
+                id=f"ica_factor_{i}",
+                name_zh=f"ICA因子_{i}",
+                name_en=f"ICA Factor {i}",
+                pole_a_label=f"方向A_{i}",
+                pole_b_label=f"方向B_{i}",
+            )
+            for i in range(self.n_components)
+        ]
 
     def get_factor_labels(self) -> list[dict]:
         """返回所有因子的可读标签"""

@@ -106,15 +106,14 @@ if __name__ == "__main__":
             engine = PersonalityEngine.load_model(str(model_path))
             print(f"已加载预训练模型: {model_path}")
         elif data_path.exists():
-            from personality_core.config import DEFAULT_CONFIG
-            config = DEFAULT_CONFIG
-            config.n_factors = 5
-            engine = PersonalityEngine(config)
+            from personality_core.config import get_config
+            engine = PersonalityEngine(get_config(n_factors=5))
             with open(data_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             descriptions = [item["description"] for item in data["archetypes"]]
             names = [item["name"] for item in data["archetypes"]]
-            engine.train(descriptions, names)
+            parent_ids = [item.get("parent_id", "") for item in data["archetypes"]]
+            engine.train(descriptions, names, parent_ids)
             print("已从数据训练引擎")
         else:
             print("未找到数据文件，启动空引擎")

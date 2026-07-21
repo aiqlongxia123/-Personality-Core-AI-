@@ -46,3 +46,13 @@ class PersonalityConfig:
 
 
 DEFAULT_CONFIG = PersonalityConfig()
+
+def get_config(**overrides) -> PersonalityConfig:
+    """返回 DEFAULT_CONFIG 的深拷贝，可选覆盖字段。
+    禁止直接修改 DEFAULT_CONFIG，防止全局状态污染。"""
+    import copy
+    cfg = copy.deepcopy(DEFAULT_CONFIG)
+    for k, v in overrides.items():
+        if hasattr(cfg, k):
+            setattr(cfg, k, v)
+    return cfg

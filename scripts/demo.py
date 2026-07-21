@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from personality_core.engine import PersonalityEngine
-from personality_core.config import DEFAULT_CONFIG
+from personality_core.config import get_config
 
 
 def main():
@@ -18,20 +18,19 @@ def main():
 
     descriptions = [item["description"] for item in data["archetypes"]]
     names = [item["name"] for item in data["archetypes"]]
+    parent_ids = [item.get("parent_id", "") for item in data["archetypes"]]
 
     print("=" * 60)
-    print("  人格AI系统 v0.1 — 快速Demo")
+    print("  人格AI系统 v0.1.1 — 快速Demo")
     print("=" * 60)
 
-    config = DEFAULT_CONFIG
-    config.n_factors = 5
-    engine = PersonalityEngine(config)
-    engine.train(descriptions, names)
+    engine = PersonalityEngine(get_config(n_factors=5))
+    engine.train(descriptions, names, parent_ids)
 
     print("\n✅ 训练完成")
     print(f"   样本数: {len(descriptions)}")
-    print(f"   因子数: {config.n_factors}")
-    print(f"   原型数: {config.n_clusters}")
+    print(f"   因子数: {engine.config.n_factors}")
+    print(f"   原型数: {engine.config.n_clusters}")
 
     # 显示因子
     print("\n📊 人格因子:")
