@@ -260,9 +260,11 @@ def create_ui(engine: PersonalityEngine):
             response = _try_llm_chat(engine, user_input)
             if response is None:
                 response = _template_chat(pid, user_input)
-            history.append((user_input, response))
+            history.append({"role": "user", "content": user_input})
+            history.append({"role": "assistant", "content": response})
         except Exception as e:
-            history.append((user_input, f"[错误] {e}"))
+            history.append({"role": "user", "content": user_input})
+            history.append({"role": "assistant", "content": f"[错误] {e}"})
         return history
 
     # ── 界面 ──
