@@ -333,18 +333,12 @@ def create_ui(engine: PersonalityEngine):
 
             def handle_chat(persona_choice, user_input, history):
                 if not persona_choice or not user_input:
-                    return history, history
+                    return (history or []), (history or [])
                 if history is None:
                     history = []
-                pid = persona_choice.split(" | ")[0]
-                try:
-                    if engine.current_persona is None or engine.current_persona.persona_id != pid:
-                        engine.initialize_by_persona_id(pid)
-                    resp = _try_llm_chat(engine, user_input)
-                    if resp is None:
-                        resp = _template_chat(pid, user_input)
-                except Exception as e:
-                    resp = f"[错误] {e}"
+                pid = persona_choice.split(" | ")[0] if " | " in persona_choice else persona_choice
+                # 在线版不走 LLM，直接用模板回复
+                resp = _template_chat(pid, user_input)
                 history.append({"role": "user", "content": user_input})
                 history.append({"role": "assistant", "content": resp})
                 return history, history
