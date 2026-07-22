@@ -252,7 +252,9 @@ def create_ui(engine: PersonalityEngine):
     # ── 对话（带 LLM 降级） ──
     def chat_with_persona(persona_choice: str, user_input: str, history: list):
         if not persona_choice or not user_input:
-            return history
+            return history or []
+        if history is None:
+            history = []
         pid = persona_choice.split(" | ")[0]
         try:
             if engine.current_persona is None or engine.current_persona.persona_id != pid:
@@ -325,7 +327,7 @@ def create_ui(engine: PersonalityEngine):
                 choices=persona_choices, label="对话人格",
                 value=persona_choices[0] if persona_choices else None,
             )
-            chatbot = gr.Chatbot(label="对话")
+            chatbot = gr.Chatbot(label="对话", type="messages")
             msg = gr.Textbox(label="输入", placeholder="输入你想说的话...")
             msg.submit(chat_with_persona, inputs=[chat_persona_dd, msg, chatbot], outputs=[chatbot])
 
