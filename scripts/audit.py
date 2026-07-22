@@ -1,5 +1,6 @@
 """项目审计脚本 — 逐项核查原始审计报告发现问题是否已修"""
 import sys, json, numpy as np
+import os
 from pathlib import Path
 PROJECT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT / "src"))
@@ -156,7 +157,7 @@ import api.server as api_module
 # 替换 API 的全局 engine 为审计脚本训练的 engine
 api_module.engine = engine
 from fastapi.testclient import TestClient
-client = TestClient(api_module.app)
+client = TestClient(api_module.app, headers={"X-API-Key": os.getenv("PERSONALITY_API_KEY", "test")})
 
 r_score = client.post("/score", json={"index_a": 0, "index_b": 1})
 check("16. /score POST正常", r_score.status_code == 200)
