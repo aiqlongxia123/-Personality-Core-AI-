@@ -328,8 +328,28 @@ def create_ui(engine: PersonalityEngine):
                 value=persona_choices[0] if persona_choices else None,
             )
             chatbot = gr.Chatbot(label="对话", type="messages")
+            chat_state = gr.State([])
             msg = gr.Textbox(label="输入", placeholder="输入你想说的话...")
-            msg.submit(chat_with_persona, inputs=[chat_persona_dd, msg, chatbot], outputs=[chatbot])
+
+            def handle_chat(persona_choice, user_input, history):
+                if not persona_choice or not user_input:
+                    return history, history
+                if history is None:
+                    history = []
+                pid = persona_choice.split(" | ")[0]
+                try:
+                    if engine.current_persona is None or engine.current_persona.persona_id != pid:
+                        engine.initialize_by_persona_id(pid)
+                    resp = _try_llm_chat(engine, user_input)
+                    if resp is None:
+                        resp = _template_chat(pid, user_input)
+                except Exception as e:
+                    resp = f"[错误] {e}"
+                history.append({"role": "user", "content": user_input})
+                history.append({"role": "assistant", "content": resp})
+                return history, history
+
+            msg.submit(handle_chat, inputs=[chat_persona_dd, msg, chat_state], outputs=[chatbot, chat_state])
 
     return demo
 
