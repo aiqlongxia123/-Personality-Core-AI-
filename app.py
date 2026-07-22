@@ -123,9 +123,13 @@ LLM_AVAILABLE = False  # 全局标记，首次调用后确定
 
 
 def _try_llm_chat(engine, user_input: str) -> str | None:
-    """尝试 LLM 对话，失败返回 None"""
+    """尝试 LLM 对话，失败或返回系统错误时返回 None"""
     try:
-        return engine.chat(user_input)
+        resp = engine.chat(user_input)
+        # LLM 不可用时返回的文本也是"成功"的字符串，需要检测
+        if resp and not resp.startswith("[系统]") and not resp.startswith("[错误]"):
+            return resp
+        return None
     except Exception:
         return None
 
