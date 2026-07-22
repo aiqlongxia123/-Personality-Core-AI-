@@ -1,8 +1,13 @@
 """
-HF Spaces 入口 — 人格AI系统 Web UI
+ModelScope Space 入口 — 人格AI系统 Web UI
 支持人格浏览、Morph 旋转、2D 图谱、对话（LLM 不可用时自动降级为模板回复）
 """
+import os
 import sys
+
+# ModelScope 服务器无法直连 HuggingFace，用镜像站下载模型
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+
 import json
 import random
 from pathlib import Path
