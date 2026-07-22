@@ -33,6 +33,9 @@ models/
 memory_data/
 memory_data/*.json
 
+# 临时目录
+temp_repo/
+
 # IDE
 .idea/
 .vscode/

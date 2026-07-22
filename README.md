@@ -1,3 +1,14 @@
+---
+title: 渊 — 人格AI系统
+emoji: 🧠
+colorFrom: indigo
+colorTo: purple
+sdk: gradio
+sdk_version: 4.44.0
+app_file: app.py
+pinned: false
+---
+
 # 🧠 Personality Core — 人格AI系统
 
 > 把"性格"变成可计算、可旋转、可克隆的东西。**v0.1.4** | 125 人格档案 | 14 API 端点 | Gradio Web UI

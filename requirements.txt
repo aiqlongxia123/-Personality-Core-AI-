@@ -1,0 +1,8 @@
+# HF Spaces 最小依赖 — 渊 人格AI系统
+sentence-transformers>=3.0
+scikit-learn>=1.4
+umap-learn>=0.5
+numpy>=1.26
+gradio>=4.0
+matplotlib>=3.8
+jieba>=0.42
