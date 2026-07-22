@@ -4,13 +4,25 @@ ModelScope Space 入口 — 人格AI系统 Web UI
 """
 import os
 import sys
+from pathlib import Path
 
-# ModelScope 服务器无法直连 HuggingFace，用镜像站下载模型
-os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+# ── ModelScope 服务器不能访问 HF，从 ModelScope 镜像下载模型 ──
+_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+_LOCAL_MODEL_DIR = Path("/tmp/model_cache") / _MODEL_NAME
+
+if not _LOCAL_MODEL_DIR.exists():
+    try:
+        from modelscope.hub.snapshot_download import snapshot_download
+        snapshot_download(f"Ceceliachenen/{_MODEL_NAME}", cache_dir=str(_LOCAL_MODEL_DIR.parent))
+        print(f"✅ 模型已从 ModelScope 下载到 {_LOCAL_MODEL_DIR}")
+    except Exception as e:
+        print(f"⚠️ 模型下载失败: {e}, 将尝试在线加载")
+
+# 告诉 embedder 用本地模型路径
+os.environ["PERSONALITY_MODEL_PATH"] = str(_LOCAL_MODEL_DIR) if _LOCAL_MODEL_DIR.exists() else ""
 
 import json
 import random
-from pathlib import Path
 
 # 确保 src/ 在 path 中
 _src = Path(__file__).parent / "src"

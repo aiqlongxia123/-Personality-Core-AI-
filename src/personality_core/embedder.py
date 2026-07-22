@@ -1,4 +1,5 @@
 """文本嵌入模块 — 将人格描述转化为向量"""
+import os
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from pathlib import Path
@@ -10,6 +11,10 @@ class TextEmbedder:
     """基于Sentence-BERT的文本嵌入器"""
 
     def __init__(self, model_name: str = "paraphrase-multilingual-MiniLM-L12-v2"):
+        # 优先用环境变量指定的本地模型路径（ModelScope 等离线环境）
+        local_path = os.environ.get("PERSONALITY_MODEL_PATH", "")
+        if local_path and Path(local_path).exists():
+            model_name = local_path
         self.model_name = model_name
         self.model = SentenceTransformer(model_name)
         self.dim = self.model.get_embedding_dimension()
