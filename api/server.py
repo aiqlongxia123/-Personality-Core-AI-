@@ -1,5 +1,13 @@
 """FastAPI 人格AI系统接口"""
 import os
+import sys
+from pathlib import Path
+
+# 确保 src 在 Python 路径
+_src = Path(__file__).parent.parent / "src"
+if str(_src) not in sys.path:
+    sys.path.insert(0, str(_src))
+
 from fastapi import FastAPI, HTTPException, Query, Body, Depends
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
@@ -62,7 +70,7 @@ async def startup():
     import json
     from pathlib import Path
 
-    data_path = Path(__file__).parent.parent / "data" / "archetypes_extended.json"
+    data_path = Path(__file__).parent.parent / "data" / "full_personas.json"
     model_path = Path(__file__).parent.parent / "models" / "personality_model"
 
     try:
@@ -70,15 +78,15 @@ async def startup():
             engine = PersonalityEngine.load_model(str(model_path))
             print(f"已加载预训练模型: {model_path}")
         elif data_path.exists():
-            cfg = get_config(n_factors=5)
+            cfg = get_config(n_factors=10)  # 使用完整10因子维度
             engine = PersonalityEngine(cfg)
             with open(data_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             descriptions = [item["description"] for item in data["archetypes"]]
             names = [item["name"] for item in data["archetypes"]]
-            parent_ids = [item.get("parent_id", "") for item in data["archetypes"]]
+            parent_ids = [item.get("id", item.get("parent_id", "")) for item in data["archetypes"]]
             engine.train(descriptions, names, parent_ids)
-            print(f"已从数据训练引擎（{len(descriptions)}样本）")
+            print(f"已从 full_personas.json 训练引擎（{len(descriptions)}样本）")
         else:
             print("未找到数据文件，启动空引擎")
             engine = PersonalityEngine()
@@ -119,6 +127,18 @@ class ChatRequest(BaseModel):
     user_input: str = Field(..., min_length=1, max_length=5000)
     archetype_index: int = Field(default=0, ge=0)
     session_id: Optional[str] = None
+
+
+class MorphTraitsRequest(BaseModel):
+    persona_id: str = Field(..., min_length=1)
+    adjustments: dict = Field(..., description='{"aggression": +0.2, "warmth": -0.1}')
+    new_persona_id: Optional[str] = None
+
+
+class CloneRequest(BaseModel):
+    persona_id: str = Field(..., min_length=1)
+    tweaks: dict = Field(default_factory=dict)
+    new_persona_id: Optional[str] = None
 
 
 # ═══════════════ 工具函数 ═══════════════
@@ -242,6 +262,40 @@ async def chat(req: ChatRequest, _auth: str = Depends(validate_api_key)):
         "persona_id": eng._resolve_persona_id(),
         "persona_name": eng.current_persona.name if eng.current_persona else "渊",
     }
+
+
+@app.get("/personas")
+async def list_personas(_auth: str = Depends(validate_api_key)):
+    """列出所有可用人格档案（包括变体）"""
+    eng = get_engine()
+    return eng.list_personas()
+
+
+@app.post("/morph/traits")
+async def morph_traits(req: MorphTraitsRequest, _auth: str = Depends(validate_api_key)):
+    """在 trait 空间调整人格，生成新变体"""
+    eng = get_engine()
+    # 先激活该人格
+    if eng.current_persona is None or eng.current_persona.persona_id != req.persona_id:
+        eng.initialize_by_persona_id(req.persona_id)
+    morphed = eng.morph_traits(
+        adjustments=req.adjustments,
+        new_persona_id=req.new_persona_id,
+    )
+    return morphed.to_dict()
+
+
+@app.post("/clone")
+async def clone_persona(req: CloneRequest, _auth: str = Depends(validate_api_key)):
+    """克隆并微调人格"""
+    eng = get_engine()
+    if eng.current_persona is None or eng.current_persona.persona_id != req.persona_id:
+        eng.initialize_by_persona_id(req.persona_id)
+    cloned = eng.morph_traits(
+        adjustments=req.tweaks,
+        new_persona_id=req.new_persona_id,
+    )
+    return cloned.to_dict()
 
 
 @app.post("/train")

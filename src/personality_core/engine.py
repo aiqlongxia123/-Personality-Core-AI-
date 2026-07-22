@@ -156,6 +156,8 @@ class PersonalityEngine:
 
         # 加载内置人格档案
         self._load_builtin_personas()
+        # 加载外部完整数据集（包含121个样本）
+        self._try_load_external_personas()
 
     def _load_builtin_personas(self):
         """加载内置人格档案（可作为外部 JSON 覆盖）"""
@@ -195,7 +197,35 @@ class PersonalityEngine:
         return self
 
     def _try_load_external_personas(self):
-        """尝试从 data/archetypes.json 加载外部人格档案补充 trait"""
+        """尝试从完整数据集加载外部人格档案，优先使用 full_personas.json"""
+        added_count = 0
+        # 先尝试完整数据集（包含121个样本）
+        data_path = Path(__file__).parent.parent.parent / "data" / "full_personas.json"
+        if data_path.exists():
+            try:
+                with open(data_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                for item in data.get("archetypes", []):
+                    pid = item.get("id", "")
+                    if pid and pid not in self._persona_profiles:
+                        self._persona_profiles[pid] = PersonaProfile(
+                            persona_id=pid,
+                            name=item.get("name", pid),
+                            domain=item.get("domain", ""),
+                            description=item.get("description", ""),
+                            traits=item.get("traits", {}),
+                            style_tags=item.get("style_tags", []),
+                            sample_dialogue=item.get("sample_dialogue", []),
+                            boundaries=item.get("boundaries", {"medical_diagnosis": False, "emotional_manipulation": False, "personal_insults": False}),
+                        )
+                        added_count += 1
+                print(f"从 {data_path} 加载了 {added_count} 个外部人格档案 (总计 {len(self._persona_profiles)} 个)")
+                return
+            except Exception as e:
+                print(f"尝试加载完整数据集失败：{e}")
+
+        # 回退到原始 archetypes.json
+        added_count = 0
         try:
             data_path = Path(__file__).parent.parent.parent / "data" / "archetypes.json"
             if not data_path.exists():
@@ -214,6 +244,8 @@ class PersonalityEngine:
                         style_tags=item.get("style_tags", []),
                         sample_dialogue=item.get("sample_dialogue", []),
                     )
+                    added_count += 1
+            print(f"从 {data_path} 加载了 {added_count} 个旧版人格档案")
         except Exception as e:
             print(f"加载外部人格档案失败（使用内置）: {e}")
 

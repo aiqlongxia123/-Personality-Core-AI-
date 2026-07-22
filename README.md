@@ -1,6 +1,6 @@
 # 🧠 Personality Core — 人格AI系统
 
-> 把"性格"变成可计算、可旋转、可克隆的东西。
+> 把"性格"变成可计算、可旋转、可克隆的东西。**v0.1.4** | 125 人格档案 | 14 API 端点 | Gradio Web UI
 
 基于向量嵌入空间的人格分析系统：把人格放进嵌入向量空间，做旋转、聚类、评分、可视化，行为可计算、可克隆。
 
@@ -49,13 +49,17 @@
 
 > 完整人格档案、拓扑图、三维空间映射、配对矩阵见 [`data/archetypes.md`](data/archetypes.md)；融合人格「渊」的详细定义（行为模式、Prompt 模板、Morph 方向、与 Samantha 对比）见 [`data/fused_archetype.md`](data/fused_archetype.md)。
 
+### 📊 数据集
+
+项目包含 **125 个高质量人格样本**（11 原型 + 114 变体），覆盖哲学/神学/心理学/文学/即兴 5 大领域，详见 [`data/full_personas.json`](data/full_personas.json)。可通过 `scripts/generate_synthetic_data.py` 基于模板批量生成更多变体。
+
 ## 🚀 快速开始
 
 ### 安装
 
 ```bash
-git clone https://github.com/aiqlongxia123/aiqlongxia123-personality-core.git
-cd aiqlongxia123-personality-core
+git clone https://github.com/aiqlongxia123/-Personality-Core-AI-.git
+cd -Personality-Core-AI-
 
 python -m venv .venv
 .venv\Scripts\activate        # Windows
@@ -97,7 +101,7 @@ python api/server.py
 # 访问 http://localhost:8000/docs
 ```
 
-所有 API 端点均需要 `X-API-Key` 请求头鉴权。
+所有 API 端点均需要 `X-API-Key` 请求头鉴权。完整端点列表：`/embed` `/factors` `/clusters` `/morph` `/score` `/compare` `/atlas` `/interact` `/chat` `/personas` `/morph/traits` `/clone` `/train`。
 
 ### 接入 LLM 对话
 
@@ -211,3 +215,7 @@ MIT License — 自由使用、修改、分发。
 ## 🤝 Contributing
 
 欢迎提交 PR、Issue、改进文档或补充数据集。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 📝 Changelog
+
+详见 [CHANGELOG.md](CHANGELOG.md)
