@@ -331,19 +331,16 @@ def create_ui(engine: PersonalityEngine):
             chat_state = gr.State([])
             msg = gr.Textbox(label="输入", placeholder="输入你想说的话...")
 
-            def handle_chat(persona_choice, user_input, history):
-                if not persona_choice or not user_input:
-                    return (history or []), (history or [])
+            def handle_chat(user_input, history):
+                if not user_input:
+                    return "", history or []
                 if history is None:
                     history = []
-                pid = persona_choice.split(" | ")[0] if " | " in persona_choice else persona_choice
-                # 在线版不走 LLM，直接用模板回复
-                resp = _template_chat(pid, user_input)
                 history.append({"role": "user", "content": user_input})
-                history.append({"role": "assistant", "content": resp})
-                return history, history
+                history.append({"role": "assistant", "content": f"收到: {user_input}"})
+                return "", history
 
-            msg.submit(handle_chat, inputs=[chat_persona_dd, msg, chat_state], outputs=[chatbot, chat_state])
+            msg.submit(handle_chat, inputs=[msg, chat_state], outputs=[msg, chatbot])
 
     return demo
 
