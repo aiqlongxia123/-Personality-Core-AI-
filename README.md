@@ -4,7 +4,7 @@ emoji: 🧠
 colorFrom: indigo
 colorTo: purple
 sdk: gradio
-sdk_version: 4.44.0
+sdk_version: 6.19.0
 app_file: app.py
 pinned: false
 ---
@@ -151,7 +151,7 @@ ollama serve
 - **会话管理**：Session TTL 1小时 + LRU 淘汰（最多50个活跃会话），防止内存泄漏。
 - **训练防投毒**：`/train` 端点限制样本数 2~50，文本截断至 2000 字符。
 - **安全策略层**：自伤 / 医疗 / 隐私 / 侮辱四类检测独立于角色设定，优先级最高，不可被 Prompt 覆盖。
-- **依赖锁定**：使用 `requirements-lock.txt` 冻结全部依赖版本，部署时务必以此安装。
+- **依赖锁定**：使用 `pyproject.toml` 锁定全部依赖版本，部署时通过 `pip install -e ".[dev]"` 安装。
 - **部署加固**：Docker 容器以非 root 用户运行，`.env` 文件强制 API Key。
 
 ## 📐 技术架构
