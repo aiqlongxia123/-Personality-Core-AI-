@@ -11,7 +11,7 @@ pinned: false
 
 # 🧠 Personality Core — 人格AI系统
 
-> 把"性格"变成可计算、可旋转、可克隆的东西。**v0.2.2** | 126 人格档案 | 14 API 端点 | Gradio Web UI | pydantic-settings + logging + AI场景对话
+> 把"性格"变成可计算、可旋转、可克隆的东西。**v0.2.3** | 126 人格档案 | 14 API 端点 | System Prompt 优化 + 场景对话体系 + E2E 增强测试 | pydantic-settings + logging
 
 基于向量嵌入空间的人格分析系统：把人格放进嵌入向量空间，做旋转、聚类、评分、可视化，行为可计算、可克隆。
 
@@ -64,7 +64,7 @@ pinned: false
 
 ### 📊 数据集
 
-项目包含 **126 个高质量人格样本**（8 基础 + 118 变体 + 5 新领域人物），覆盖哲学/神学/心理学/文学/即兴/科学/艺术 7 大领域。详见 [`data/full_personas.json`](data/full_personas.json)。AI 为每个基础人格配备了 5 大场景 × 8 条对话共 320 条高质量中文对话模板。可通过 `scripts/generate_synthetic_data.py` 基于模板批量生成更多变体。
+项目包含 **126 个高质量人格样本**（8 基础 + 118 变体 + 5 新领域人物），覆盖哲学/神学/心理学/文学/即兴/科学/艺术 7 大领域。详见 [`data/full_personas.json`](data/full_personas.json)。配备精细 System Prompt + 5 大场景 × 8 条对话共 40+ 条结构化对话模板，通过 E2E 测试验证。可通过 `scripts/generate_synthetic_data.py` 基于模板批量生成更多变体。
 
 ## 🚀 快速开始
 
@@ -210,7 +210,7 @@ personality-core/
 │   └── engine.py            # 总控引擎
 ├── api/                       # FastAPI接口（含Rate Limit、Session管理）
 ├── ui/                        # Gradio Web UI
-├── data/                      # 预置数据集（126个人格样本 + AI场景对话）
+├── data/                      # 预置数据集（126个人格样本 + System Prompt + 场景对话）
 ├── scripts/                   # 训练/演示/审计脚本
 ├── tests/                     # 单元测试 + 安全专项测试
 ├── docs/                      # 文档

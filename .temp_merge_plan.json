@@ -1,0 +1,21 @@
+{
+  "file": "scripts/merge_enhanced_data.py",
+  "description": "合并 enhanced_base_personas 和新领域人格到 full_personas.json，添加 system_prompt 和 scene_dialogues",
+  "steps": [
+    {
+      "id": 1,
+      "name": "加载原始数据",
+      "command": "python -c \"import json; data=json.load(open('data/full_personas.json','r',encoding='utf-8')); print(f'Original: {len(data[\"archetypes\"])}')\""
+    },
+    {
+      "id": 2,
+      "name": "加载增强基础人格",
+      "command": "python -c \"import json; enhanced=json.load(open('data/enhanced_base_personas.json','r',encoding='utf-8')); print(f'Enhanced: {len(enhanced[\"archetypes\"])}')\""
+    },
+    {
+      "id": 3,
+      "name": "加载新领域人格",
+      "command": "python -c \"import json; new=json.load(open('data/new_personas_extended.json','r',encoding='utf-8')); print(f'New domain: {len(new[\"archetypes\"])}')\""
+    }
+  ]
+}
