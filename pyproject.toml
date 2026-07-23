@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "personality-core"
-version = "0.2.3"
+version = "0.2.4"
 description = "基于向量嵌入空间的人格AI系统 — 把性格变成可计算、可旋转、可克隆的东西"
 readme = "README.md"
 license = {text = "MIT"}

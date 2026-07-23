@@ -57,7 +57,7 @@ async def validate_api_key(api_key: str | None = Depends(api_key_header)):
 app = FastAPI(
     title="Personality Core API",
     description="基于向量嵌入空间的人格AI系统",
-    version="0.2.3",
+    version="0.2.4",
 )
 
 # 全局引擎实例

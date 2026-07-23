@@ -11,7 +11,7 @@ pinned: false
 
 # 🧠 Personality Core — 人格AI系统
 
-> 把"性格"变成可计算、可旋转、可克隆的东西。**v0.2.3** | 126 人格档案 | 14 API 端点 | System Prompt 优化 + 场景对话体系 + E2E 增强测试 | pydantic-settings + logging
+> 把"性格"变成可计算、可旋转、可克隆的东西。**v0.2.3** | 136 人格档案 | 14 API 端点 | System Prompt 优化 + 场景对话体系 + E2E 增强测试 | pydantic-settings + logging
 
 基于向量嵌入空间的人格分析系统：把人格放进嵌入向量空间，做旋转、聚类、评分、可视化，行为可计算、可克隆。
 
