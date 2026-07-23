@@ -1,4 +1,7 @@
-"""可用性验证 — CLI / API / 对话 三条路径"""
+"""可用性验证 — CLI / API / 对话 三条路径
+
+注：先前存在 verify_full.py（精简版本），因功能覆盖不全已删除，本文件为准入版本。
+"""
 import sys, json, os
 from pathlib import Path
 

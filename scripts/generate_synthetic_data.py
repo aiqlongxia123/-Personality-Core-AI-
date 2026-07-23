@@ -1,6 +1,9 @@
 """
 生成更多人格样本的脚本
 基于现有原型，通过维度扰动、描述重写生成变种
+
+继承自 scripts/generate_synthetic.py（已删除）— 本文件为现役生产版本，
+旧版本仅作历史快照。
 """
 import json
 import random
