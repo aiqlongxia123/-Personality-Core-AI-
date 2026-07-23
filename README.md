@@ -11,7 +11,7 @@ pinned: false
 
 # 🧠 Personality Core — 人格AI系统
 
-> 把"性格"变成可计算、可旋转、可克隆的东西。**v0.1.4** | 125 人格档案 | 14 API 端点 | Gradio Web UI
+> 把"性格"变成可计算、可旋转、可克隆的东西。**v0.2.0** | 125 人格档案 | 14 API 端点 | Gradio Web UI
 
 基于向量嵌入空间的人格分析系统：把人格放进嵌入向量空间，做旋转、聚类、评分、可视化，行为可计算、可克隆。
 
@@ -28,6 +28,8 @@ pinned: false
 | **情感引擎** | 情绪动态 + 关系阶段演化 |
 | **记忆系统** | 三层记忆 + 成长日志 + 用户兴趣追踪 |
 | **LLM对话** | 接入 Ollama 本地模型，按人格风格生成回复 |
+| **Prompt 注入防御** | 越狱词检测 + 输入长度截断 + system prompt 片段拦截 |
+| **安全策略层** | 自伤 / 医疗 / 隐私 / 侮辱检测，独立于角色设定不可被覆盖 |
 
 ## 🎭 预置人格：「渊」
 
@@ -112,7 +114,24 @@ python api/server.py
 # 访问 http://localhost:8000/docs
 ```
 
-所有 API 端点均需要 `X-API-Key` 请求头鉴权。完整端点列表：`/embed` `/factors` `/clusters` `/morph` `/score` `/compare` `/atlas` `/interact` `/chat` `/personas` `/morph/traits` `/clone` `/train`。
+所有 API 端点均需要 `X-API-Key` 请求头鉴权。完整端点列表：
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/health` | GET | 健康检查 |
+| `/embed` | POST | 文本嵌入 |
+| `/factors` | GET | 因子标签 |
+| `/clusters` | GET | 原型列表 |
+| `/morph` | POST | 人格旋转 |
+| `/score` | POST | 适配度评分 |
+| `/compare` | POST | 维度对比 |
+| `/atlas` | GET | 2D 图谱坐标 |
+| `/interact` | POST | 无 LLM 交互 |
+| `/chat` | POST | LLM 对话 |
+| `/personas` | GET | 人格列表 |
+| `/morph/traits` | POST | Trait 空间旋转 |
+| `/clone` | POST | 克隆微调人格 |
+| `/train` | POST | 重新训练引擎 |
 
 ### 接入 LLM 对话
 
@@ -126,10 +145,14 @@ ollama serve
 
 ## 🔒 安全说明
 
-- **API 鉴权**：所有 `/api/` 端点强制要求 `X-API-Key` 请求头，未配置环境变量时服务拒绝启动。
-- **Prompt 注入防御**：`chat` 接口内置越狱检测，拦截尝试覆盖系统人格的输入。
-- **向量钳制**：Morph 操作自动限制角度和旋转向量模长，防止数值溢出。
+- **API 鉴权**：所有端点强制要求 `X-API-Key` 请求头，密钥需 ≥16 位，未配置时服务拒绝启动。
+- **Prompt 注入防御**：内置越狱词正则检测 + system prompt 片段拦截 + 输入长度上限（2000字符）。
+- **速率限制**：单 IP 每分钟最多 30 次请求，超限返回 429。
+- **会话管理**：Session TTL 1小时 + LRU 淘汰（最多50个活跃会话），防止内存泄漏。
+- **训练防投毒**：`/train` 端点限制样本数 2~50，文本截断至 2000 字符。
+- **安全策略层**：自伤 / 医疗 / 隐私 / 侮辱四类检测独立于角色设定，优先级最高，不可被 Prompt 覆盖。
 - **依赖锁定**：使用 `requirements-lock.txt` 冻结全部依赖版本，部署时务必以此安装。
+- **部署加固**：Docker 容器以非 root 用户运行，`.env` 文件强制 API Key。
 
 ## 📐 技术架构
 
@@ -139,6 +162,9 @@ ollama serve
                             EmotionCore + MemoryEngine → Agent交互
                                     ↓
                               Ollama LLM → 人格化回复
+                                      ↕
+                           SafetyPolicy (检测/过滤/拦截)
+                              Prompt Injection Filter
 ```
 
 ### Python API
@@ -178,14 +204,20 @@ personality-core/
 │   ├── emotion_core.py      # 情感引擎
 │   ├── memory_engine.py     # 三层记忆
 │   ├── llm_engine.py        # Ollama对话
+│   ├── safety.py            # 安全策略层
 │   └── engine.py            # 总控引擎
-├── api/                       # FastAPI接口
+├── api/                       # FastAPI接口（含Rate Limit、Session管理）
 ├── ui/                        # Gradio Web UI
-├── data/                      # 预置数据集（100个人格样本）
-├── scripts/                   # 训练/演示脚本
+├── data/                      # 预置数据集（125个人格样本）
+├── scripts/                   # 训练/演示/审计脚本
+├── tests/                     # 单元测试 + 安全专项测试
 ├── docs/                      # 文档
 ├── examples/                  # 使用示例
 ├── pyproject.toml             # 依赖配置
+├── Dockerfile                 # 非root容器化部署
+├── docker-compose.yml         # 含Ollama服务编排
+├── .env.example               # 环境变量模板
+├── AUDIT_REPORT.md            # 审计落实报告
 ├── README.md
 ├── LICENSE                    # MIT
 └── CONTRIBUTING.md
@@ -216,6 +248,8 @@ fastapi>=0.110
 uvicorn>=0.29
 pydantic>=2.0
 gradio>=4.0
+matplotlib>=3.8
+jieba>=0.42
 requests>=2.31
 ```
 

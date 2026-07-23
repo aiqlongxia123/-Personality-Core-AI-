@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.2.0 (2026-07-23)
+
+### 安全加固
+- `safety.py`：激活隐私检测（密码/身份证/银行卡号），收紧医疗关键词去除 `"药"` 误报，扩展自杀关键词
+- `engine.py`：Prompt 注入过滤增强 — system prompt 片段拦截 + 输入长度上限 2000 字符
+- `api/server.py`：API Key 强度校验 ≥16 位，未配置时拒绝启动
+- `api/server.py`：新增 Rate Limiting（单 IP 每分钟 30 次）
+- `api/server.py`：Session TTL 1小时 + LRU 淘汰（最多50个活跃会话）
+- `api/server.py`：新增 `/health` 健康检查端点
+- `api/server.py`：`/train` 端点防投毒（样本 2~50，文本截断）
+- `Dockerfile`：容器以非 root 用户运行
+- `docker-compose.yml`：强制 `PERSONALITY_API_KEY` 环境变量
+- 新增 `.env.example` 环境变量模板
+
+### 测试
+- 新增 `tests/test_security_and_safety.py`：22 项安全专项测试
+- `tests/test_api.py`：适配 API Key 最小长度要求
+- E2E 端到端测试全部通过（29/29）
+
+### Bug 修复
+- 修复 `gmm_clusterer.py` parent_id 索引越界问题
+- 修复 `engine.py` numpy int64 JSON 序列化错误（`save_model`）
+
+---
+
 ## v0.1.4 (2026-07-22)
 
 ### 数据
@@ -32,15 +57,21 @@
 - 引擎自动加载 full_personas.json
 - API 路径修复
 
+---
+
 ## v0.1.2
 
 - 自动调参 (Optuna)、知识图谱、长时记忆 (FAISS)、工具调度
+
+---
 
 ## v0.1.1
 
 - 16 项 P0/P1 修复（ICA 命名、DEFAULT_CONFIG 污染、GMM 投票等）
 - 人格导入导出、trait 预测、Morph→trait 闭环
 - CLI (`python -m personality_core`)、Docker 部署
+
+---
 
 ## v0.1.0
 
