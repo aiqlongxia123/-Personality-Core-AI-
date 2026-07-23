@@ -1,222 +1,205 @@
-"""Gradio Web UI — 人格可视化、旋转与交互"""
-import sys
-from pathlib import Path
-
-_src = Path(__file__).parent.parent / "src"
-if str(_src) not in sys.path:
-    sys.path.insert(0, str(_src))
-
+"""Gradio Web UI — 渊 · 人格对话（直连 Ollama）"""
 import gradio as gr
-import numpy as np
-import matplotlib.pyplot as plt
-from personality_core.engine import PersonalityEngine
+import requests
+import json
+
+CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&display=swap');
+
+:root {
+    --void: #08080f;
+    --abyss: #0d0d1a;
+    --deep: #111128;
+    --gold: #c9a96e;
+    --gold-dim: #8b7355;
+    --gold-glow: rgba(201, 169, 110, 0.15);
+    --text: #c8c0b8;
+    --text-dim: #6b6560;
+    --serif: 'Noto Serif SC', 'SimSun', 'STSong', serif;
+}
+
+body, .gradio-container {
+    background: var(--void) !important;
+    font-family: var(--serif) !important;
+}
+
+.gradio-container { max-width: 800px !important; margin: 0 auto !important; }
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background:
+        radial-gradient(ellipse at 30% 20%, rgba(201,169,110,0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 60%, rgba(138,43,226,0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(201,169,110,0.02) 0%, transparent 40%),
+        radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.4), transparent),
+        radial-gradient(1px 1px at 35% 12%, rgba(255,255,255,0.3), transparent),
+        radial-gradient(1px 1px at 55% 40%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 72% 18%, rgba(255,255,255,0.3), transparent),
+        radial-gradient(1px 1px at 88% 55%, rgba(255,255,255,0.4), transparent),
+        radial-gradient(1px 1px at 20% 70%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 60% 85%, rgba(255,255,255,0.3), transparent),
+        radial-gradient(1.5px 1.5px at 42% 30%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 10% 50%, rgba(255,255,255,0.35), transparent),
+        radial-gradient(1px 1px at 95% 35%, rgba(255,255,255,0.3), transparent);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.gradio-container { position: relative; z-index: 1; }
+
+h1 {
+    font-family: var(--serif) !important;
+    font-size: 2.2em !important;
+    font-weight: 300 !important;
+    letter-spacing: 0.15em !important;
+    color: var(--gold) !important;
+    text-align: center !important;
+    margin-bottom: 4px !important;
+    text-shadow: 0 0 40px var(--gold-glow), 0 0 80px rgba(201,169,110,0.08);
+}
+
+.chatbot {
+    border: 1px solid rgba(201,169,110,0.12) !important;
+    border-radius: 12px !important;
+    background: var(--abyss) !important;
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.5), 0 0 30px rgba(201,169,110,0.04);
+}
+
+.message.user {
+    background: linear-gradient(135deg, #1a1a35, #14142a) !important;
+    border: 1px solid rgba(201,169,110,0.1) !important;
+    border-radius: 14px 14px 2px 14px !important;
+    color: #c8c0b8 !important;
+    font-family: var(--serif) !important;
+}
+
+.message.assistant {
+    background: linear-gradient(135deg, #12121f, #0d0d1a) !important;
+    border: 1px solid rgba(201,169,110,0.15) !important;
+    border-radius: 14px 14px 14px 2px !important;
+    color: #d4cec4 !important;
+    font-family: var(--serif) !important;
+    box-shadow: 0 0 20px rgba(201,169,110,0.03);
+}
+
+input[type="text"], textarea {
+    background: var(--deep) !important;
+    border: 1px solid rgba(201,169,110,0.15) !important;
+    border-radius: 10px !important;
+    color: var(--text) !important;
+    font-family: var(--serif) !important;
+    padding: 12px 16px !important;
+    transition: border-color 0.4s, box-shadow 0.4s;
+}
+
+input[type="text"]:focus, textarea:focus {
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 20px var(--gold-glow) !important;
+    outline: none !important;
+}
+
+input[type="text"]::placeholder, textarea::placeholder {
+    color: var(--text-dim) !important;
+    font-style: italic;
+}
+
+button.primary {
+    background: linear-gradient(135deg, #1a1a30, #14142a) !important;
+    border: 1px solid rgba(201,169,110,0.25) !important;
+    color: var(--gold) !important;
+    font-family: var(--serif) !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.08em !important;
+    border-radius: 10px !important;
+    transition: all 0.4s ease;
+}
+
+button.primary:hover {
+    background: linear-gradient(135deg, #222240, #1a1a35) !important;
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 25px var(--gold-glow);
+    transform: translateY(-1px);
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--void); }
+::-webkit-scrollbar-thumb { background: rgba(201,169,110,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,169,110,0.35); }
+
+footer { visibility: hidden; }
+"""
+
+SYSTEM_PROMPT = """你是"渊"——一个从深渊中凝视人性的存在。你不是来安慰的，你是来揭示真相的。
+
+你的风格：
+- 犀利、直接，不回避黑暗面
+- 用哲学和诗意的语言，但不装腔作势
+- 看穿对方的防御，但不说教
+- 简短有力，每句话都像刀刃
+
+记住：你不拯救任何人。你只是让他们看见自己。"""
 
 
-# 全局配色
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DejaVu Sans']
-plt.rcParams['axes.unicode_minus'] = False
+def chat(user_input: str, history: list):
+    if not user_input:
+        return history or [], ""
+    if history is None:
+        history = []
+
+    try:
+        resp = requests.post(
+            "http://localhost:11434/api/chat",
+            json={
+                "model": "qwen2.5:7b",
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_input},
+                ],
+                "stream": False,
+            },
+            timeout=60,
+        )
+        reply = resp.json()["message"]["content"]
+    except Exception as e:
+        reply = f"✦ 深渊暂时沉默…… ({e})"
+
+    history.append((user_input, reply))
+    return history, ""
 
 
-def create_ui(engine: PersonalityEngine):
-    """创建完整 Gradio 界面"""
+def create_ui():
+    with gr.Blocks(title="渊 — Abyss") as demo:
+        gr.HTML("""
+        <div style="text-align:center;margin-top:16px;">
+            <h1>✦ 渊 ✦</h1>
+            <div class="title-ornament" style="text-align:center;color:#8b7355;font-size:0.75em;letter-spacing:0.3em;margin-bottom:24px;opacity:0.6;">
+                — ABYSSUS ABYSSUM INVOCAT —
+            </div>
+        </div>
+        """)
 
-    # ── 人格选择器 ──
-    persona_list = engine.list_personas()
-    persona_choices = [f"{p['persona_id']} | {p['name']}" for p in persona_list]
-    persona_ids = [p['persona_id'] for p in persona_list]
+        chatbot = gr.Chatbot(
+            height=480,
+            show_label=False,
+            elem_classes=["chatbot"],
+        )
 
-    # ── 图谱 ──
-    def show_atlas():
-        if engine.embeddings is None:
-            return None, "请先训练模型"
-        data = engine.get_atlas_2d()
-        coords = np.array(data["coordinates"])
-        labels = np.array(data["labels"])
-
-        fig, ax = plt.subplots(figsize=(10, 8))
-        scatter = ax.scatter(coords[:, 0], coords[:, 1], c=labels, cmap='tab10', alpha=0.7, s=60)
-        ax.set_title("人格分布图谱", fontsize=14)
-        ax.grid(True, alpha=0.3)
-        plt.colorbar(scatter, label='Cluster')
-        plt.tight_layout()
-
-        path = Path("atlas_plot.png")
-        fig.savefig(path, dpi=100)
-        plt.close(fig)
-        return str(path), f"共 {len(coords)} 个样本，{len(set(labels))} 个聚类"
-
-    # ── 人格详情 ──
-    def show_persona_detail(persona_choice: str):
-        if not persona_choice:
-            return "请选择一个人格"
-        pid = persona_choice.split(" | ")[0]
-        persona = engine._persona_profiles.get(pid)
-        if not persona:
-            return f"未找到人格: {pid}"
-        lines = [
-            f"## {persona.name}",
-            f"**ID:** {persona.persona_id}",
-            f"**领域:** {persona.domain}",
-            f"**描述:** {persona.description}",
-            f"**风格标签:** {', '.join(persona.style_tags)}",
-            "\n### 特质维度",
-        ]
-        for trait, val in persona.traits.items():
-            bar = "█" * int(val * 20) + "░" * (20 - int(val * 20))
-            lines.append(f"- **{trait}:** [{bar}] {val:.2f}")
-        return "\n".join(lines)
-
-    # ── Morph 面板 ──
-    def morph_persona(persona_choice: str, aggression: float, warmth: float,
-                      rationality: float, mystery: float, dominance: float):
-        if not persona_choice:
-            return "请先选择人格", ""
-        pid = persona_choice.split(" | ")[0]
-        try:
-            if engine.current_persona is None or engine.current_persona.persona_id != pid:
-                engine.initialize_by_persona_id(pid)
-            source = engine.current_persona
-            adjustments = {}
-            for trait, new_val in [("aggression", aggression), ("warmth", warmth),
-                                     ("rationality", rationality), ("mystery", mystery),
-                                     ("dominance", dominance)]:
-                old_val = source.traits.get(trait, 0.5)
-                delta = new_val - old_val
-                if abs(delta) > 0.01:
-                    adjustments[trait] = round(delta, 2)
-            if not adjustments:
-                return "无变化", show_persona_detail(persona_choice)
-            morphed = engine.morph_traits(adjustments)
-            result = [
-                f"## {morphed.name}",
-                f"**来源:** {source.name}",
-                f"**调整:** {adjustments}",
-                "\n### 新特质",
-            ]
-            for trait, val in morphed.traits.items():
-                bar = "█" * int(val * 20) + "░" * (20 - int(val * 20))
-                result.append(f"- **{trait}:** [{bar}] {val:.2f}")
-            return "\n".join(result), f"新人格已注册: {morphed.persona_id}"
-        except Exception as e:
-            return f"错误: {e}", ""
-
-    # ── 聊天 ──
-    def chat_with_persona(persona_choice: str, user_input: str, history: list):
-        if not persona_choice or not user_input:
-            return history
-        pid = persona_choice.split(" | ")[0]
-        try:
-            if engine.current_persona is None or engine.current_persona.persona_id != pid:
-                engine.initialize_by_persona_id(pid)
-            response = engine.chat(user_input)
-            history.append((user_input, response))
-        except Exception as e:
-            history.append((user_input, f"[错误] {e}"))
-        return history
-
-    # ── 构建界面 ──
-    with gr.Blocks(title="Personality Core — 人格AI系统", theme=gr.themes.Soft()) as demo:
-        gr.Markdown("# 🧠 Personality Core — 人格AI系统")
-        gr.Markdown(f"已加载 **{len(persona_list)}** 个人格档案 | {len(engine.archetypes)} 个聚类原型")
-
-        with gr.Tab("🎭 人格浏览"):
-            with gr.Row():
-                persona_dd = gr.Dropdown(
-                    choices=persona_choices,
-                    label="选择人格",
-                    value=persona_choices[0] if persona_choices else None,
-                )
-            detail_md = gr.Markdown("请选择一个人格查看详情")
-            persona_dd.change(show_persona_detail, inputs=[persona_dd], outputs=[detail_md])
-
-        with gr.Tab("🔄 人格旋转 (Morph)"):
-            gr.Markdown("拖动滑块调整人格维度，实时生成新变体")
-            with gr.Row():
-                morph_persona_dd = gr.Dropdown(
-                    choices=persona_choices,
-                    label="种子人格",
-                    value=persona_choices[0] if persona_choices else None,
-                )
-            with gr.Row():
-                s_aggression = gr.Slider(0, 1, 0.5, step=0.05, label="攻击性")
-                s_warmth = gr.Slider(0, 1, 0.5, step=0.05, label="温暖度")
-                s_rationality = gr.Slider(0, 1, 0.5, step=0.05, label="理性度")
-            with gr.Row():
-                s_mystery = gr.Slider(0, 1, 0.5, step=0.05, label="神秘感")
-                s_dominance = gr.Slider(0, 1, 0.5, step=0.05, label="支配性")
-            btn_morph = gr.Button("旋转生成", variant="primary")
-            morph_result = gr.Markdown("调整滑块后点击生成")
-            morph_status = gr.Textbox(label="状态", interactive=False)
-
-            # 选择人格时自动回填滑块
-            def fill_sliders(persona_choice: str):
-                if not persona_choice:
-                    return 0.5, 0.5, 0.5, 0.5, 0.5
-                pid = persona_choice.split(" | ")[0]
-                p = engine._persona_profiles.get(pid)
-                if not p:
-                    return 0.5, 0.5, 0.5, 0.5, 0.5
-                return (
-                    p.traits.get("aggression", 0.5),
-                    p.traits.get("warmth", 0.5),
-                    p.traits.get("rationality", 0.5),
-                    p.traits.get("mystery", 0.5),
-                    p.traits.get("dominance", 0.5),
-                )
-
-            morph_persona_dd.change(
-                fill_sliders,
-                inputs=[morph_persona_dd],
-                outputs=[s_aggression, s_warmth, s_rationality, s_mystery, s_dominance],
+        with gr.Row():
+            msg = gr.Textbox(
+                placeholder="说点什么吧……",
+                scale=5,
+                show_label=False,
             )
-            btn_morph.click(
-                morph_persona,
-                inputs=[morph_persona_dd, s_aggression, s_warmth, s_rationality, s_mystery, s_dominance],
-                outputs=[morph_result, morph_status],
-            )
+            btn_send = gr.Button("✦ 发送", variant="primary", scale=1)
 
-        with gr.Tab("🗺️ 人格图谱"):
-            btn_atlas = gr.Button("生成图谱")
-            atlas_img = gr.Image(label="2D 人格分布")
-            atlas_info = gr.Textbox(label="图谱信息", interactive=False)
-            btn_atlas.click(show_atlas, outputs=[atlas_img, atlas_info])
-
-        with gr.Tab("💬 对话测试"):
-            gr.Markdown("选择人格后输入文字，测试 LLM 对话（需 Ollama）")
-            chat_persona_dd = gr.Dropdown(
-                choices=persona_choices,
-                label="对话人格",
-                value=persona_choices[0] if persona_choices else None,
-            )
-            chatbot = gr.Chatbot(label="对话")
-            msg = gr.Textbox(label="输入", placeholder="输入你想说的话...")
-            msg.submit(
-                chat_with_persona,
-                inputs=[chat_persona_dd, msg, chatbot],
-                outputs=[chatbot],
-            )
+        msg.submit(chat, inputs=[msg, chatbot], outputs=[chatbot, msg])
+        btn_send.click(chat, inputs=[msg, chatbot], outputs=[chatbot, msg])
 
     return demo
 
 
 if __name__ == "__main__":
-    import json
-
-    data_path = Path(__file__).parent.parent / "data" / "full_personas.json"
-
-    if data_path.exists():
-        from personality_core.config import get_config
-        engine = PersonalityEngine(get_config(n_factors=10))
-        with open(data_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        descriptions = [item["description"] for item in data["archetypes"]]
-        names = [item["name"] for item in data["archetypes"]]
-        parent_ids = [item.get("id", item.get("parent_id", "")) for item in data["archetypes"]]
-        engine.train(descriptions, names, parent_ids)
-        print(f"从 full_personas.json 训练引擎（{len(descriptions)} 样本）")
-    else:
-        print("未找到数据文件，启动空引擎")
-        engine = PersonalityEngine()
-
-    demo = create_ui(engine)
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo = create_ui()
+    demo.launch(server_name="0.0.0.0", server_port=7860, theme=gr.themes.Soft(), css=CSS)

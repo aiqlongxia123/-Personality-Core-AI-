@@ -328,19 +328,13 @@ def create_ui(engine: PersonalityEngine):
                 value=persona_choices[0] if persona_choices else None,
             )
             chatbot = gr.Chatbot(label="对话", type="messages")
-            chat_state = gr.State([])
             msg = gr.Textbox(label="输入", placeholder="输入你想说的话...")
 
-            def handle_chat(user_input, history):
-                if not user_input:
-                    return "", history or []
-                if history is None:
-                    history = []
-                history.append({"role": "user", "content": user_input})
-                history.append({"role": "assistant", "content": f"收到: {user_input}"})
-                return "", history
-
-            msg.submit(handle_chat, inputs=[msg, chat_state], outputs=[msg, chatbot])
+            msg.submit(
+                chat_with_persona,
+                inputs=[chat_persona_dd, msg, chatbot],
+                outputs=[chatbot],
+            )
 
     return demo
 
