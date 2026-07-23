@@ -1,40 +1,20 @@
+# .gitignore for 渊 Personality Core Project
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-env/
-venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
+dist/
+build/
+.eggs/
 
-# 模型和数据
-models/
-*.pkl
-*.pt
-*.pth
-
-# 记忆数据（仅memory_data下的json）
-memory_data/
-memory_data/*.json
-
-# 临时目录
-temp_repo/
+# Virtual env
+venv/
+.venv/
+env/
+.venv*
 
 # IDE
 .idea/
@@ -46,10 +26,32 @@ temp_repo/
 .DS_Store
 Thumbs.db
 
-# Gradio缓存
-.gradio/
-/tmp/
+# Models and data
+models/*.joblib
+models/*.pkl
+models/*.pt
+models/personality_model.*
+data/full_personas.json
+data/archetypes.json
+data/training_data.json
+data/personality_profiles.json
 
-# 日志
-*.log
+# Memory and logs
+memory_data/
+logs/
+*.db
+*.sqlite3
 
+# Environment
+.env
+!.env.example
+.env.local
+
+# MCP Server
+test_mcp_model/
+test_*.model/
+
+# Temporary files
+$null
+*.tmp
+*.bak
