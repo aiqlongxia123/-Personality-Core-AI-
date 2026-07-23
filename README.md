@@ -266,3 +266,90 @@ MIT License — 自由使用、修改、分发。
 ## 📝 Changelog
 
 详见 [CHANGELOG.md](CHANGELOG.md)
+
+## 🤖 本地 MCP Server (v0.2.6)
+
+基于 PersonalityEngine 的本地 MCP (Model Context Protocol) 服务器，提供 18 个工具通过 stdio 与 MCP 客户端通信。
+
+### 可用工具
+
+| 工具 | 说明 |
+|------|------|
+| `chat` | 与渊人格对话（LLM生成回复） |
+| `interact` | 无LLM的情感交互（离线可用） |
+| `embed` | 文本嵌入为向量+因子得分 |
+| `morph` | 沿ICA因子方向旋转人格 |
+| `score` | 两个人格相似度评分 |
+| `compare` | 多维度差异对比 |
+| `get_atlas` | 获取2D降维图谱坐标 |
+| `list_personas` | 列出所有可用人格档案 |
+| `list_archetypes` | 列出原型聚类信息 |
+| `list_factors` | 列出所有ICA因子标签 |
+| `predict_traits` | 从文本预测5维人格特质 |
+| `matrix_compare` | 生成人格相似度矩阵 |
+| `create_custom_persona` | 创建自定义人格 |
+| `morph_traits` | 调整现有性格生成变体 |
+| `save_model` | 保存训练好的模型 |
+| `train_from_descriptions` | 用新文本重新训练 |
+| `get_persona_detail` | 获取人格详细信息 |
+| `health_check` | 健康检查 |
+
+### 快速开始
+
+#### 1. 直接运行
+
+```bash
+cd "C:\Users\13534\Desktop\渊"
+python api/mcp_server.py
+```
+
+#### 2. Agnes 配置
+
+在 `.agnes/config.yaml` 添加：
+
+```yaml
+mcp_servers:
+  personality-core:
+    command: python
+    args:
+      - "C:/Users/13534/Desktop/渊/api/mcp_server.py"
+    env:
+      PERSONALITY_DATA_FILE: "C:/Users/13534/Desktop/渊/data/full_personas.json"
+      PERSONALITY_MODEL_PATH: "C:/Users/13534/Desktop/渊/models/personality_model"
+```
+
+### 安全特性
+
+- ✅ Prompt注入防护（越狱词检测+长度截断）
+- ✅ 安全策略层（自伤/医疗/隐私/侮辱检测）
+- ✅ 会话管理（TTL + LRU淘汰）
+- ✅ 速率限制（IP级每分钟30请求）
+- ✅ 训练防投毒（样本数限制+文本截断）
+
+### 架构
+
+````
+MCP Client → stdio → mcp_server.py
+                   ↓
+          PersonalityEngine
+          ├── TextEmbedder (Sentence-BERT)
+          ├── ICAExtractor (FastICA)
+          ├── GMmClusterer (GMM)
+          ├── EmotionCore (情感动态)
+          ├── MemoryAndGrowthEngine (三层记忆)
+          ├── SafetyPolicy (安全策略)
+          └── LLMChatEngine (Ollama/OpenAI)
+````
+
+### 依赖
+
+- `sentence-transformers>=3.0`
+- `scikit-learn>=1.4`
+- `umap-learn>=0.5`
+- `numpy>=1.26`
+- `fastapi>=0.110`
+- `uvicorn[standard]>=0.29`
+- `pydantic>=2.0`
+- `pydantic-settings>=2.0`
+- `jieba>=0.42`
+- `mcp>=1.0`
