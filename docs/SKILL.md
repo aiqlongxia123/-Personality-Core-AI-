@@ -217,8 +217,57 @@ v0.1 MVP 概念验证。**能跑了，有坑。**
 - `src/personality_core/scorer.py` — 评分
 - `src/personality_core/comparator.py` — 对比
 - `src/personality_core/llm_engine.py` — Ollama
+- `src/personality_core/engine_tuner.py` — attach_tuner + 情绪词路由
 - `data/archetypes.json` — 原型数据
 - `data/fused_archetype.md` — 渊档案
+- `scripts/activate_yuan.py` — 一键激活渊的入口
 - `scripts/demo.py` — Demo
 - `ui/gradio_app.py` — Web
 - `api/server.py` — API
+
+---
+
+## Persona Switching — 软化情绪词分发
+
+> 不在对话中显示人格切换的提示语；用委婉语言触发人格推荐，**不强制切换**，由系统判断执行。
+
+### 入口
+
+```python
+from personality_core.engine import PersonalityEngine
+from personality_core.engine_tuner import attach_tuner, route_by_tone
+
+engine = PersonalityEngine()
+engine.train(descriptions)
+attach_tuner(engine)              # 默认激活"渊", 挂载 tune_hyperparameters
+attach_tuner(engine, activate_now=False)  # 仅挂载, 不激活
+
+# 对话前可探测:
+suggested = route_by_tone(user_input)  # 'yuan' / 'baozao_niangmen' / 'qingyan' / 'nietzsche_devil' / None
+```
+
+### 切换隐藏
+
+CLI `src/personality_core/__main__.py:74` 已注释:
+```python
+# print(f"   → 切换到: {engine.current_persona.name}")
+```
+切换过程不向用户回显, 对话感受不到"被切号".
+
+### 情绪词映射
+
+完整映射见 [`references/tone_mapping.md`](references/tone_mapping.md).
+
+核心 13 条:
+- 暴躁娘们: 痛苦 / 算了 / 累了 / 没意思 / 烂透了
+- 清晏: 害怕 / 孤独 / 陪我 / 想哭
+- 尼采的魔鬼: 软弱 / 振作 / 站起来
+
+### 风格偏好 (User Style)
+
+- **简短**: 疲惫/不适时对话要短而温柔, 不堆术语
+- **温暖**: 不要冷分析, 哲学深度需带温度
+- **直接**: 失败立刻报, 不包装"安慰式"答案
+- **不要显式提示人格切换**: 用户偏好对话自然, 不希望看到"我换号了"
+
+详见 `scripts/activate_yuan.py` 的 REPL 模式与 `engine_tuner._TONE_MAP` 的实现.

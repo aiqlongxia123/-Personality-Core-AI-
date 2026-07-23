@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$ProjectRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
 $SkillDir = "$env:USERPROFILE\.hermes\skills\mlops\personality-core"
 
 Write-Host "=== 安装 Personality Core 到 Hermes Agent ===" -ForegroundColor Cyan

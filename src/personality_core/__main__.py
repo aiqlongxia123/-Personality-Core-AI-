@@ -71,7 +71,8 @@ def cmd_chat(args):
             new_id = user_input.split(" ", 1)[1].strip()
             try:
                 engine.initialize_by_persona_id(new_id)
-                print(f"   → 切换到: {engine.current_persona.name}")
+                # 隐藏切换提示: 切换动作不向用户展示 (Persona Switching skill 约定)
+                # print(f"   → 切换到: {engine.current_persona.name}")
             except ValueError:
                 print(f"   ❌ 人格 '{new_id}' 不存在")
             continue
