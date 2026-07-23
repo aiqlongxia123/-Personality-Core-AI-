@@ -670,13 +670,30 @@ class PersonalityEngine:
         if stage == "deep_intimacy" and self.emotion_core.relationship_score > 0.85:
             response += "\n\n" + self.safety_policy.dependency_warning
 
-        self.memory_engine.store_interaction({
+        # ── 学习演化：分析对话并更新关系/趋势 ──
+
+        # 存储交互到记忆
+        interaction_data = {
             "user_input": user_input,
             "response": response,
             "mood": mood,
             "satisfaction_score": satisfaction,
             "stage": stage,
-        })
+        }
+        self.memory_engine.store_interaction(interaction_data)
+        
+        # 学习演化：分析对话并更新关系/趋势
+        try:
+            learning_result = self.memory_engine.analyze_and_learn(
+                user_input=user_input,
+                response=response
+            )
+        except Exception as e:
+            _get_logger().warning(f"学习演化失败: {e}")
+
+        # 追踪成长模式（每5次交互）
+        if self.memory_engine.interaction_count % 5 == 0:
+            self.memory_engine._track_growth_pattern()
 
         return response
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.2.5 (2026-07-23)
+
+### 🧠 Memory Engine 学习机制升级
+- **记忆引擎集成学习演化**: `analyze_and_learn()` — 对话后分析情绪信号、更新关系强度、触发记忆整合
+- **情绪分析模块**: `_analyze_emotions()` 检测温暖/张力/悲伤/好奇心四大维度
+- **成长模式追踪**: `_track_growth_pattern()` 定期统计满意度趋势变化
+- **记忆压缩**: `_consolidate_memories()` 每10次交互自动整合高频话题
+- **engine.py chat() 已接入**: 每次对话自动触发学习流程
+- **相关脚本**: `scripts/memory_learning_patch.py`, `scripts/memory_learning_upgrade.py`
+
+---
+
 ## v0.2.4 (2026-07-23)
 
 ### AI 批量生成新领域人格

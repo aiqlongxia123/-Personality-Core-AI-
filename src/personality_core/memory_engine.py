@@ -52,6 +52,13 @@ class MemoryAndGrowthEngine:
         self.sensory_memories: list[dict] = []
         self.growth_log: OrderedDict = OrderedDict()
         self.relationship_milestones: OrderedDict = OrderedDict()
+        
+        # 学习演化相关
+        self.relationship_strength: float = 0.5
+        self.interaction_count: int = 0
+        self.current_topic_priority: str | None = None
+        self.prev_trend: str | None = None
+        self._prev_relationship: float = 0.5
 
         self._init_db()
         self._load_cache()
@@ -209,6 +216,112 @@ class MemoryAndGrowthEngine:
                         )
         except Exception:
             pass
+
+    # ═══════════════ 学习演化 ═══════════════
+
+    def analyze_and_learn(self, user_input: str, response: str) -> dict:
+        """分析对话并学习演化：更新情绪记录，触发人格微调"""
+        emotions = self._analyze_emotions(user_input, response)
+        
+        # 关系强度根据情绪信号动态调整
+        if emotions['tension'] > 0.4:
+            self.relationship_strength += 0.01
+        elif emotions['warmth'] > 0.6:
+            self.relationship_strength += 0.005
+        elif emotions['sadness'] > 0.5:
+            self.relationship_strength -= 0.002
+        
+        # 限制在合理范围
+        self.relationship_strength = max(0.0, min(1.0, self.relationship_strength))
+        
+        # 交互计数 + 定期整合
+        self.interaction_count += 1
+        if self.interaction_count % 10 == 0:
+            self._consolidate_memories()
+        
+        return {
+            "emotions": emotions,
+            "relationship_delta": self.relationship_strength,
+            "interaction_count": self.interaction_count,
+        }
+
+    def _analyze_emotions(self, input_text: str, response_text: str) -> dict:
+        """分析对话中的情绪信号"""
+        warmth_signals = ['谢谢', '开心', '爱', '温暖', '感动', '感谢', '喜欢', '舒服']
+        tension_signals = ['生气', '愤怒', '错误', '不对', '反驳', '质疑', '矛盾', '讨厌']
+        sadness_signals = ['难过', '伤心', '哭', '失望', '痛苦', '孤独', '抑郁', '绝望']
+        curiosity_signals = ['好奇', '为什么', '怎么', '如何', '探索', '发现', '学习']
+        
+        def count_matches(signals: list, text: str) -> float:
+            matches = sum(1 for s in signals if s in text.lower())
+            return min(matches / max(len(signals), 1), 1.0)
+        
+        warmth = count_matches(warmth_signals, input_text + response_text)
+        tension = count_matches(tension_signals, input_text)
+        sadness = count_matches(sadness_signals, input_text)
+        curiosity = count_matches(curiosity_signals, input_text)
+        
+        return {
+            "warmth": round(warmth, 4),
+            "tension": round(tension, 4),
+            "sadness": round(sadness, 4),
+            "curiosity": round(curiosity, 4),
+        }
+
+    def _consolidate_memories(self):
+        """记忆整合：将近期记忆压缩为长期模式"""
+        recent = self.get_recent_memories(10)
+        
+        if len(recent) < 3:
+            return
+        
+        # 提取高频关键词和主题
+        topics = {}
+        for mem in recent:
+            text = mem.get('user_input', '') or ''
+            for word in self._topic_keywords:
+                if word in text:
+                    topics[word] = topics.get(word, 0) + 1
+        
+        if topics:
+            top_topic = max(topics, key=topics.get)
+            self.current_topic_priority = top_topic
+            print(f"[记忆整合] 高频话题: {top_topic} ({topics[top_topic]}次)")
+        
+        # 更新关系强度缓存
+        if hasattr(self, '_prev_relationship'):
+            self._prev_relationship = self.relationship_strength
+    
+    def _track_growth_pattern(self):
+        """追踪成长模式（基于交互历史）"""
+        conn = self._get_conn()
+        try:
+            # 统计平均满意度变化趋势
+            recent_rows = conn.execute(
+                "SELECT satisfaction_score FROM interactions ORDER BY id DESC LIMIT 20"
+            ).fetchall()
+            
+            if len(recent_rows) >= 5:
+                recent_scores = [r[0] for r in recent_rows[:10]]
+                older_scores = [r[0] for r in recent_rows[10:]]
+                
+                avg_recent = sum(recent_scores) / len(recent_scores)
+                avg_older = sum(older_scores) / len(older_scores)
+                
+                trend = "improving" if avg_recent > avg_older else "declining" if avg_recent < avg_older else "stable"
+                
+                if trend != getattr(self, 'prev_trend', None):
+                    print(f"[成长趋势] {self.prev_trend or 'initial'} → {trend}")
+                    self.prev_trend = trend
+        except Exception:
+            pass
+
+    # 初始化时添加的关键词池
+    _topic_keywords = [
+        '研究', '学术', '技术', '未来', '科学', '爱情', '家庭', '工作', 
+        '梦想', '旅行', '电影', '音乐', '阅读', '思考', '人生', '哲学',
+        '艺术', '创作', '设计', '编程', '运动', '健康', '美食', '宠物'
+    ]
 
     # ═══════════════ 读取 ═══════════════
 
