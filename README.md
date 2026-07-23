@@ -11,7 +11,7 @@ pinned: false
 
 # 🧠 Personality Core — 人格AI系统
 
-> 把"性格"变成可计算、可旋转、可克隆的东西。**v0.2.0** | 125 人格档案 | 14 API 端点 | Gradio Web UI
+> 把"性格"变成可计算、可旋转、可克隆的东西。**v0.2.1** | 125 人格档案 | 14 API 端点 | Gradio Web UI | pydantic-settings + logging
 
 基于向量嵌入空间的人格分析系统：把人格放进嵌入向量空间，做旋转、聚类、评分、可视化，行为可计算、可克隆。
 
@@ -151,6 +151,8 @@ ollama serve
 - **会话管理**：Session TTL 1小时 + LRU 淘汰（最多50个活跃会话），防止内存泄漏。
 - **训练防投毒**：`/train` 端点限制样本数 2~50，文本截断至 2000 字符。
 - **安全策略层**：自伤 / 医疗 / 隐私 / 侮辱四类检测独立于角色设定，优先级最高，不可被 Prompt 覆盖。
+- **环境变量集中管理**：所有可配置项在 `src/personality_core/settings.py` 统一管理，通过 `.env` 文件覆盖
+- **结构化日志**：日志自动输出到控制台 + `./logs/personality_core.log`，便于生产排查
 - **依赖锁定**：使用 `pyproject.toml` 锁定全部依赖版本，部署时通过 `pip install -e ".[dev]"` 安装。
 - **部署加固**：Docker 容器以非 root 用户运行，`.env` 文件强制 API Key。
 

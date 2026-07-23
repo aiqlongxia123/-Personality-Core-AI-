@@ -24,6 +24,16 @@ from personality_core.engine import PersonalityEngine
 from personality_core.config import get_config
 
 
+# ═══════════════ 日志配置 ═══════════════
+
+import logging
+logger = logging.getLogger("personality_core.api")
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"))
+    logger.addHandler(_handler)
+
+
 # ═══════════════ API 鉴权 ═══════════════
 
 API_KEY = os.getenv("PERSONALITY_API_KEY", "")
@@ -47,7 +57,7 @@ async def validate_api_key(api_key: str | None = Depends(api_key_header)):
 app = FastAPI(
     title="Personality Core API",
     description="基于向量嵌入空间的人格AI系统",
-    version="0.2.0",
+    version="0.2.1",
 )
 
 # 全局引擎实例
@@ -74,7 +84,7 @@ def _get_or_create_session(session_id: str, engine: PersonalityEngine):
             )
             _sessions[oldest_id]["memory"].close()
             del _sessions[oldest_id]
-            print(f"Session {oldest_id} expired (LRU eviction)")
+            logger.info(f"Session {oldest_id} expired (LRU eviction)")
         
         mem_engine = MemoryAndGrowthEngine(
             data_dir=f"./memory_data/session_{session_id}"
@@ -95,7 +105,7 @@ def _get_or_create_session(session_id: str, engine: PersonalityEngine):
         )
         entry["memory"] = new_mem
         entry["last_access"] = now
-        print(f"Session {session_id} refreshed (TTL expiry)")
+        logger.info(f"Session {session_id} refreshed (TTL expiry)")
     else:
         entry["last_access"] = now
     
@@ -147,7 +157,7 @@ async def startup():
     try:
         if model_path.with_suffix(".meta.json").exists():
             engine = PersonalityEngine.load_model(str(model_path))
-            print(f"已加载预训练模型: {model_path}")
+            logger.info(f"已加载预训练模型: {model_path}")
         elif data_path.exists():
             cfg = get_config(n_factors=10)  # 使用完整10因子维度
             engine = PersonalityEngine(cfg)
@@ -157,12 +167,12 @@ async def startup():
             names = [item["name"] for item in data["archetypes"]]
             parent_ids = [item.get("id", item.get("parent_id", "")) for item in data["archetypes"]]
             engine.train(descriptions, names, parent_ids)
-            print(f"已从 full_personas.json 训练引擎（{len(descriptions)}样本）")
+            logger.info(f"已从 full_personas.json 训练引擎（{len(descriptions)}样本）")
         else:
-            print("未找到数据文件，启动空引擎")
+            logger.warning("未找到数据文件，启动空引擎")
             engine = PersonalityEngine()
     except Exception as e:
-        print(f"API启动初始化失败: {e}")
+        logger.error(f"API启动初始化失败: {e}")
         engine = PersonalityEngine()
 
 
@@ -243,12 +253,12 @@ def _validate_indices(eng: PersonalityEngine, a: int, b: int, label: str):
 async def health(_auth: str = Depends(validate_api_key)):
     """健康检查"""
     status = "ok" if engine is not None else "uninitialized"
-    return {"status": status, "version": "0.2.0"}
+    return {"status": status, "version": "0.2.1"}
 
 
 @app.get("/")
 async def root(_auth: str = Depends(rate_limit_dependency)):
-    return {"message": "Personality Core API", "version": "0.2.0"}
+    return {"message": "Personality Core API", "version": "0.2.1"}
 
 
 @app.post("/embed")

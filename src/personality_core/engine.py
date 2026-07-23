@@ -152,6 +152,11 @@ BUILTIN_PERSONAS: dict[str, PersonaProfile] = {
 }
 
 
+
+def _get_logger():
+    from .settings import get_logger
+    return get_logger()
+
 class PersonalityEngine:
     """人格AI系统总控引擎"""
 
@@ -198,14 +203,14 @@ class PersonalityEngine:
         parent_ids: list[str] = None,
     ):
         """训练完整流水线：嵌入 → ICA → GMM"""
-        print("Step 1/3: Embedding...")
+        _get_logger().info("Step 1/3: Embedding...")
         self.embeddings = self.embedder.encode(descriptions)
 
-        print(f"Step 2/3: ICA factors ({self.config.n_factors})...")
+        _get_logger().info(f"Step 2/3: ICA factors ({self.config.n_factors})...")
         self.ica.fit(self.embeddings)
         self.factor_scores = self.ica.component_matrix_
 
-        print(f"Step 3/3: Clustering ({self.config.n_clusters} archetypes)...")
+        _get_logger().info(f"Step 3/3: Clustering ({self.config.n_clusters} archetypes)...")
         names = archetype_names or [f"原型_{i}" for i in range(self.config.n_clusters)]
         pids = parent_ids or list(names)
 
@@ -219,7 +224,7 @@ class PersonalityEngine:
         # 加载外部人格档案（如果 archetypes.json 可用）
         self._try_load_external_personas()
 
-        print(f"训练完成！共 {len(descriptions)} 个人格样本，{len(cluster_info)} 个原型。")
+        _get_logger().info(f"训练完成：{len(descriptions)} 个样本，{len(cluster_info)} 个原型")
         return self
 
     def _try_load_external_personas(self):
@@ -245,10 +250,10 @@ class PersonalityEngine:
                             boundaries=item.get("boundaries", {"medical_diagnosis": False, "emotional_manipulation": False, "personal_insults": False}),
                         )
                         added_count += 1
-                print(f"从 {data_path} 加载了 {added_count} 个外部人格档案 (总计 {len(self._persona_profiles)} 个)")
+                _get_logger().info(f"从 {data_path} 加载了 {added_count} 个外部人格档案 (总计 {len(self._persona_profiles)} 个)")
                 return
             except Exception as e:
-                print(f"尝试加载完整数据集失败：{e}")
+                _get_logger().warning(f"尝试加载完整数据集失败：{e}")
 
         # 回退到原始 archetypes.json
         added_count = 0
@@ -271,9 +276,9 @@ class PersonalityEngine:
                         sample_dialogue=item.get("sample_dialogue", []),
                     )
                     added_count += 1
-            print(f"从 {data_path} 加载了 {added_count} 个旧版人格档案")
+            _get_logger().info(f"从 {data_path} 加载了 {added_count} 个档案")
         except Exception as e:
-            print(f"加载外部人格档案失败（使用内置）: {e}")
+            _get_logger().warning(f"加载外部档案失败: {e}")
 
     # ═══════════════ 编码 ═══════════════
 
@@ -999,7 +1004,7 @@ class PersonalityEngine:
         if self.clusterer.gmm is not None:
             joblib.dump(self.clusterer.gmm, gmm_path)
 
-        print(f"模型已保存至 {path} (元数据) + ICA/GMM joblib")
+        _get_logger().info(f"模型已保存至 {path}")
 
     @classmethod
     def load_model(cls, path: str) -> "PersonalityEngine":

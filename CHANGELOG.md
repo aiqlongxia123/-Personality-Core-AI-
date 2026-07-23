@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.2.1 (2026-07-23)
+
+### 可选升级
+- **pydantic-settings**: 新增 `src/personality_core/settings.py`，集中管理环境变量配置（API Key / Ollama / Logging / Session / RateLimit / Sanitization）
+- **Logging 系统**: 替换 `engine.py` 和 `api/server.py` 中的 `print()` 为结构化日志，支持控制台 + 文件双输出
+- **SQLite WAL 模式**: `memory_engine.py` 已确认开启 `PRAGMA journal_mode=WAL` 和 `PRAGMA foreign_keys=ON`，支持多进程安全读写
+- **Docker 非 root**: `Dockerfile` 容器以非 root 用户运行
+- **强制 API Key**: `.env.example` + `docker-compose.yml` 强制密钥配置
+
+### Bug 修复
+- 修复 `gmm_clusterer.py` parent_id 索引越界问题
+- 修复 `engine.py` numpy int64 JSON 序列化错误（`save_model`）
+
+---
+
 ## v0.2.0 (2026-07-23)
 
 ### 安全加固
@@ -18,10 +33,6 @@
 - 新增 `tests/test_security_and_safety.py`：22 项安全专项测试
 - `tests/test_api.py`：适配 API Key 最小长度要求
 - E2E 端到端测试全部通过（29/29）
-
-### Bug 修复
-- 修复 `gmm_clusterer.py` parent_id 索引越界问题
-- 修复 `engine.py` numpy int64 JSON 序列化错误（`save_model`）
 
 ---
 
