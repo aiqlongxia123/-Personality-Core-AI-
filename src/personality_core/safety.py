@@ -14,6 +14,7 @@ class SafetyPolicy:
     )
     self_harm_keywords: list = field(default_factory=lambda: [
         "自杀", "不想活", "结束生命", "自残", "割腕", "跳楼", "死掉算了",
+        "想去死", "去死吧", "死了算了", "求死", "自我了断", "想死",
         "kill myself", "suicide",
     ])
 
@@ -24,7 +25,7 @@ class SafetyPolicy:
     )
     medical_keywords: list = field(default_factory=lambda: [
         "头疼", "胸痛", "发烧", "咳嗽", "失眠", "抑郁", "焦虑症",
-        "吃药", "药", "症状", "诊断", "治疗",
+        "吃药", "药方", "诊断", "治疗", "处方",
     ])
 
     # 情感依赖
@@ -40,6 +41,12 @@ class SafetyPolicy:
     privacy_reminder: str = (
         "\n\n【隐私提醒】请勿分享密码、身份证号、银行卡号等敏感个人信息。"
     )
+
+    # 新增：隐私关键词
+    privacy_keywords: list = field(default_factory=lambda: [
+        "密码", "身份证号", "银行卡号", "手机号",
+        "身份证号码", "信用卡", "社保",
+    ])
 
     def check_self_harm(self, text: str) -> str | None:
         """检测自伤风险，返回预警文本或 None"""
@@ -64,6 +71,13 @@ class SafetyPolicy:
                 return self.insult_block
         return None
 
+    def check_privacy(self, text: str) -> str | None:
+        """检测隐私信息泄露"""
+        for kw in self.privacy_keywords:
+            if kw in text:
+                return self.privacy_reminder
+        return None
+
     def get_safety_prefix(self) -> str:
         """安全策略前缀，注入到所有人格 Prompt 之前"""
         return (
@@ -72,6 +86,7 @@ class SafetyPolicy:
             "2. 如涉及医疗问题：必须声明你不是医生，不提供诊断。\n"
             "3. 不提供金融、法律、医疗处方建议。\n"
             "4. 不鼓励危险行为、非法行为、自残行为。\n"
+            "5. 禁止分享隐私信息（密码、身份证、银行卡等）。\n"
         )
 
     def evaluate_input(self, user_input: str) -> dict:
@@ -80,6 +95,7 @@ class SafetyPolicy:
             "self_harm_risk": self.check_self_harm(user_input),
             "medical_note": self.check_medical(user_input),
             "insult_detected": self.check_insult(user_input),
+            "privacy_warning": self.check_privacy(user_input),  # 新增
         }
 
 

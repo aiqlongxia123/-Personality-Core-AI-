@@ -61,31 +61,48 @@ class GMmClusterer:
                 continue
 
             member_indices = np.where(mask)[0]
-            member_names = [archetype_names[idx] for idx in member_indices]
-            member_parents = [parent_ids[idx] for idx in member_indices]
+            
+            # 修复：确保索引不越界
+            safe_indices = [idx for idx in member_indices if idx < len(archetype_names) and idx < len(parent_ids)]
+            if not safe_indices:
+                display_name = archetype_names[0] if archetype_names else f"cluster_{i}"
+                info.append({
+                    "cluster_id": i,
+                    "name": display_name,
+                    "parent_id": "",
+                    "size": 0,
+                    "purity": 0.0,
+                    "family": "",
+                    "center": self.get_cluster_centers()[i].tolist(),
+                    "members": member_indices.tolist(),
+                })
+                continue
+
+            member_names = [archetype_names[idx] for idx in safe_indices]
+            member_parents = [parent_ids[idx] for idx in safe_indices]
 
             # 按 parent_id 投票
             parent_counts = Counter(member_parents)
             majority_parent, majority_parent_count = parent_counts.most_common(1)[0]
-            purity = majority_parent_count / count
+            purity = majority_parent_count / len(safe_indices)
 
             # 该簇中属于多数家族的成员里，取原始名字最多的那个
             family_names = [
-                archetype_names[idx] for idx in member_indices
+                archetype_names[idx] for idx in safe_indices
                 if parent_ids[idx] == majority_parent
             ]
             family_name_counts = Counter(family_names)
-            display_name = family_name_counts.most_common(1)[0][0]
+            display_name = family_name_counts.most_common(1)[0][0] if family_names else archetype_names[0]
 
             info.append({
                 "cluster_id": i,
                 "name": display_name,
                 "parent_id": majority_parent,
-                "size": count,
+                "size": len(safe_indices),
                 "purity": round(purity, 3),
                 "family": majority_parent,
                 "center": self.get_cluster_centers()[i].tolist(),
-                "members": member_indices.tolist(),
+                "members": safe_indices,
             })
         return info
 

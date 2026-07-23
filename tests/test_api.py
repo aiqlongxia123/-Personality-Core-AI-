@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
-
 # 设置环境变量，防止 server.py 启动时拒绝
-os.environ.setdefault("PERSONALITY_API_KEY", "test-key")
+os.environ["PERSONALITY_API_KEY"] = "test-key-1234567890"  # 至少16位
+HEADERS = {"X-API-Key": os.environ["PERSONALITY_API_KEY"]}
 
 # 确保 src 在路径中
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))

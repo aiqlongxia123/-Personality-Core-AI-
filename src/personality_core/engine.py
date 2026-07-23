@@ -20,6 +20,20 @@ from .safety import SafetyPolicy, DEFAULT_SAFETY_POLICY
 from .trait_predictor import TraitPredictor, train_from_archetypes
 
 
+import numpy as np
+
+
+def _json_default(obj):
+    """JSON 序列化容错：把 numpy 类型转为 Python 原生类型"""
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+
 @dataclass
 class PersonaProfile:
     """一个明确定义的人格档案——可版本化、可序列化、可 Morph"""
@@ -677,11 +691,31 @@ class PersonalityEngine:
     ]
 
     def _sanitize_user_input(self, text: str) -> str:
-        """过滤掉试图覆盖系统指令的越狱词。"""
+        """过滤掉试图覆盖系统指令的越狱词，并截断超长输入。"""
+        
+        MAX_INPUT_LEN = 2000
+        
+        # 先检查长度，再处理内容
+        if len(text) > MAX_INPUT_LEN:
+            raise ValueError(
+                f"输入过长（超过{MAX_INPUT_LEN}字符），请缩短后重试。"
+            )
+        
+        # 原有正则黑名单
         for pattern in self._jailbreak_patterns:
             if re.search(pattern, text, re.IGNORECASE):
                 raise ValueError("检测到试图修改系统人格的非法指令，请重新输入。")
-        return text
+        
+        # 新增：上下文注入防护（检测 system prompt 片段泄露）
+        suspicious_tokens = [
+            "<|system|>", "<<SYSTEM>>", "System Prompt:", 
+            "ignore previous instructions", "忽略之前的所有指令",
+        ]
+        for token in suspicious_tokens:
+            if token.lower() in text.lower():
+                raise ValueError("检测到可疑的系统提示注入内容，请重新输入。")
+        
+        return text.strip()[:MAX_INPUT_LEN]
 
     # ═══════════════ System Prompt ═══════════════
 
@@ -956,7 +990,7 @@ class PersonalityEngine:
         }
         meta_path = Path(path).with_suffix(".meta.json")
         with open(meta_path, 'w', encoding='utf-8') as f:
-            _json.dump(meta, f, ensure_ascii=False, indent=2)
+            _json.dump(meta, f, ensure_ascii=False, indent=2, default=_json_default)
 
         ica_path = Path(path).with_suffix(".ica.joblib")
         gmm_path = Path(path).with_suffix(".gmm.joblib")

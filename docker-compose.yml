@@ -10,6 +10,7 @@ services:
       - ./models:/app/models
       - ./memory_data:/app/memory_data
     environment:
+      - PERSONALITY_API_KEY=${PERSONALITY_API_KEY:?必须设置API密钥}
       - OLLAMA_HOST=ollama
     depends_on:
       - ollama
