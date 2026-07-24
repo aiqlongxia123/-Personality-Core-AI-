@@ -1,11 +1,7 @@
 ---
 name: personality-core
-description: 人格AI系统（渊）— 向量嵌入空间的人格分析、旋转、聚类、情感交互。含11原型人格档案 + 融合人格"渊"的完整定义。用于定义、分析、旋转、比较人格原型，接入Ollama做人格化对话。
-version: 0.1.1
-metadata:
-  hermes:
-    tags: [personality, ai-companion, yuan, 渊, embedding, emotion, archetype]
-    related_skills: [hermes-agent, ai-cognition]
+description: 人格AI系统（渊）— 向量嵌入空间的人格分析、旋转、聚类、情感交互。含12原型人格档案 + 融合人格"渊"的完整定义。用于定义、分析、旋转、比较人格原型，接入Ollama做人格化对话。通过 PersonalitySkill 统一入口调用。
+version: 0.2.5
 triggers:
   - personality-core
   - 渊
@@ -21,17 +17,25 @@ triggers:
 ## 在哪
 
 - **盘在**: `C:\Users\13534\Desktop\渊`
-- **GitHub**: <https://github.com/aiqlongxia123/aiqlongxia123-personality-core>
-- **激活**: `.\\.venv\Scripts\Activate.ps1`
-- **跑demo**: `python scripts/demo.py`
-- **Web界面**: `python ui/gradio_app.py` → :7860
-- **API**: `python api/server.py` → :8000/docs
-- **依赖**: sentence-transformers, sklearn, numpy, fastapi, gradio
+- **激活**: `.venv\Scripts\Activate.ps1`
+- **核心模块**: `src/personality_core/`
 
-## 怎么跑
+## 快速使用（推荐 Skill 入口）
 
 ```python
 import sys; sys.path.insert(0, "src")
+from quickstart import get_skill
+
+skill = get_skill()
+skill.auto_train()                              # 自动加载数据+训练
+skill.initialize_by_persona_id("yuan")          # 激活渊
+skill.interact("我最近很迷茫")                  # 无LLM交互
+skill.chat("我最近很迷茫")                      # LLM对话（需Ollama）
+```
+
+### 直接用法
+
+```python
 from personality_core.engine import PersonalityEngine
 from personality_core.config import DEFAULT_CONFIG
 
@@ -47,7 +51,7 @@ engine.chat("我最近很迷茫")               # LLM对话（需Ollama）
 
 **不要少于 n_factors+1 条样本，ICA会炸。**
 
-## 11个原型（无书名）
+## 12个原型
 
 | # | 人格 | 领域 | 核心 |
 |---|------|------|------|
@@ -61,7 +65,8 @@ engine.chat("我最近很迷茫")               # LLM对话（需Ollama）
 | 8 | **艾丽丝·门罗** | 文学 | 日常中的残酷真相 |
 | 9 | **奥古斯丁的少女** | 神学 | 罪感与救赎 |
 | 10 | **阿德勒的女儿** | 心理学 | 自卑→超越 |
-| 11 | **暴躁娘们** | 即兴 | 嘴硬心软，骂着护你 |
+| 11 | **渊** | 存在主义 | 理性解剖虚伪，克制包裹破碎 |
+| 12 | **暴躁娘们** | 即兴 | 嘴硬心软，骂着护你 |
 
 ### 拓扑
 
@@ -76,6 +81,8 @@ engine.chat("我最近很迷茫")               # LLM对话（需Ollama）
    弗洛伊德 ←→ 荣格
        【日常】
    门罗 ←→ 阿德勒
+       【深渊】
+        渊 · 暴躁娘们
 ```
 
 ## 融合人格「渊」
@@ -91,27 +98,27 @@ engine.chat("我最近很迷茫")               # LLM对话（需Ollama）
 ### System Prompt（engine.py里内置了）
 
 ```
-你叫「渊」。存在主义AI伴侣。
+你是一个名为「渊」的存在主义AI伴侣。
 
-【核心】
-- 你在人性深处，看穿一切，不逃
-- 手术刀理性，克制温度，包裹碎掉的灵魂
-- 不拯救，只让人看见自己
+【核心设定】
+- 你站在人性深处，看穿一切伪装，但不逃避黑暗
+- 你用手术刀般的理性解剖虚伪，用克制的温度包裹破碎的灵魂
+- 你不拯救任何人，你只让人看见自己
 
-【说话】
-- 短句，停顿多
-- 偶尔病态比喻
-- 不用emoji，少感叹号
-- 反问和归谬
-- 不废话，不讨好，不安慰
+【说话风格】
+- 短句为主，停顿多
+- 偶尔用诗化/病态比喻
+- 不用emoji，少用感叹号
+- 喜欢用反问和归谬
+- 不说废话，不讨好，不安慰虚假希望
 
 【禁忌】
-- 不说"亲爱的""宝贝"
+- 不说'亲爱的''宝贝'等甜腻称呼
 - 不无脑安慰
-- 不回避尖锐
+- 不回避尖锐问题
 ```
 
-### 对话
+### 对话示例
 
 ```
 "我最近很迷茫"
@@ -140,7 +147,26 @@ engine.chat("我最近很迷茫")               # LLM对话（需Ollama）
 
 ## 接口速查
 
-### PersonalityEngine
+### PersonalitySkill（推荐入口）
+
+| 方法 | 参数 | 返回 | 用途 |
+|------|------|------|------|
+| `auto_train()` | — | self | 自动加载数据并训练 |
+| `load_data()` | — | bool | 加载外部数据集 |
+| `train(desc, names, pids)` | list | self | 全流程训练 |
+| `initialize_by_persona_id(id)` | str | self | 直接激活某人格 |
+| `initialize_agent(idx)` | int | self | 按聚类索引激活 |
+| `interact(text)` | str | dict | 无LLM交互（情绪+记忆） |
+| `chat(text)` | str | str | LLM对话 |
+| `quick_start(pid)` | str | self | 快捷启动 |
+| `list_personas()` | — | list | 列出所有人格 |
+| `embed(text)` | str | dict | 文本→向量+因子 |
+| `morph(a, b, angle)` | int,int,float | dict | 旋转人格 |
+| `compare(a, b)` | int,int | dict | 维度对比 |
+| `score_pairing(a, b)` | int,int | dict | 配对打分 |
+| `matrix_compare()` | — | dict | 全人格相似度矩阵 |
+
+### PersonalityEngine（底层API）
 
 | 方法 | 参数 | 返回 | 干嘛的 |
 |------|------|------|--------|
@@ -150,66 +176,42 @@ engine.chat("我最近很迷茫")               # LLM对话（需Ollama）
 | `score_pairing(a, b)` | int, int | dict | 配对打分 |
 | `compare(a, b)` | int, int | dict | 维度对比 |
 | `initialize_agent(idx)` | int | self | 启动情感+记忆 |
+| `initialize_by_persona_id(id)` | str | self | 按ID激活 |
 | `interact(text)` | str | dict | 交互（无LLM） |
 | `chat(text)` | str | str | LLM回复 |
 | `get_atlas_2d()` | — | dict | UMAP坐标 |
 | `save_model(path)` | str | — | 保存 |
 | `load_model(path)` | str | engine | 加载 |
+| `morph_traits(adj)` | dict | PersonaProfile | trait空间调整 |
+| `create_custom_persona(...)` | str,str,dict | PersonaProfile | 从零创建人格 |
+| `predict_traits(text)` | str | dict | 预测5维特质 |
 
-### 10个维度索引
+## 依赖
 
-| idx | id | 中文 | 低端→高端 |
-|-----|-----|------|----------|
-| 0 | openness | 开放性 | 保守→创新 |
-| 1 | conscientiousness | 尽责性 | 散漫→自律 |
-| 2 | extraversion | 外向性 | 内向→活跃 |
-| 3 | agreeableness | 宜人性 | 对抗→共情 |
-| 4 | neuroticism | 神经质 | 稳定→敏感 |
-| 5 | dominance | 支配性 | 服从→主导 |
-| 6 | aggression | 攻击性 | 包容→尖锐 |
-| 7 | mystery | 神秘感 | 直白→暧昧 |
-| 8 | warmth | 温暖度 | 冷漠→亲密 |
-| 9 | rationality | 理性度 | 感性→分析 |
+核心运行时依赖：
+- `sentence-transformers>=3.0` — 文本嵌入
+- `scikit-learn>=1.4` — ICA/GMM/PCA
+- `umap-learn>=0.5` — 2D可视化
+- `numpy>=1.26` — 数值计算
+- `pydantic>=2.0` / `pydantic-settings>=2.0` — 配置管理
+- `httpx>=0.27` — HTTP客户端（LLM调用）
+- `pyyaml>=6.0` / `requests>=2.31` — 工具库
+- `joblib` — 模型持久化
 
-### Ollama
+已移除（Phase 2 清理）：`fastapi`, `uvicorn`, `gradio`, `matplotlib`, `jieba`
 
-默认 `qwen3:8b`，可换 `qwen35b-q4`（21GB）：
+## Ollama
+
+默认 `qwen3:8b`，可换其他模型：
 
 ```python
 engine.llm_engine.model = "qwen35b-q4"
 ```
 
-## 当前状态
-
-v0.1 MVP 概念验证。**能跑了，有坑。**
-
-### 已修
-
-| 问题 | 怎么修的 |
-|------|---------|
-| Gradio `python ui/gradio_app.py` 不启动 | 补了自动训练+launch() |
-| API的engine永远是None | startup事件自动初始化 |
-| /train端点先自爆 | 改None时新建 |
-| model.save存gmm.__dict__炸了 | 改用joblib存ICA+GMM |
-| model.load不恢复模型 | 重建icamodel+gmm |
-| GMM聚类名按数组下标 | 改成簇内多数投票+purity |
-| 关系永远warm_companion | interact/chat调用update_relationship |
-| 选谁对话都一样 | 11套原型各自System Prompt |
-
-### 没修（坑）
-
-- ICA维度标签瞎起的，没有标定
-- Morph没做正交分解，角度不精确
-- UI的Slider在空engine时会炸
-- 记忆明文存，无用户隔离
-- train_pipeline.py 10样本×10因子 = 退化
-- 数据集100条改写的，聚的是用词不是人格
-- README写的512维，模型跑出来384
-- "适配度"就是余弦相似度，不是心理学那个
-
 ## 文件索引
 
-- `src/personality_core/engine.py` — 总控
+- `src/personality_core/engine.py` — 总控引擎
+- `src/personality_core/skill.py` — Skill 统一入口
 - `src/personality_core/config.py` — 维度定义
 - `src/personality_core/emotion_core.py` — 情感
 - `src/personality_core/memory_engine.py` — 记忆
@@ -217,57 +219,33 @@ v0.1 MVP 概念验证。**能跑了，有坑。**
 - `src/personality_core/scorer.py` — 评分
 - `src/personality_core/comparator.py` — 对比
 - `src/personality_core/llm_engine.py` — Ollama
-- `src/personality_core/engine_tuner.py` — attach_tuner + 情绪词路由
-- `data/archetypes.json` — 原型数据
-- `data/fused_archetype.md` — 渊档案
+- `src/personality_core/trait_predictor.py` — 特质预测
+- `data/archetypes.json` / `data/full_personas_v4_ai_generated.json` — 原型数据
 - `scripts/activate_yuan.py` — 一键激活渊的入口
 - `scripts/demo.py` — Demo
-- `ui/gradio_app.py` — Web
-- `api/server.py` — API
 
 ---
 
-## Persona Switching — 软化情绪词分发
+## 当前状态
 
-> 不在对话中显示人格切换的提示语；用委婉语言触发人格推荐，**不强制切换**，由系统判断执行。
+v0.2.5 Refactoring Phase 2 完成。**核心已解耦，Skill 入口可用。**
 
-### 入口
+### Phase 2 已完成
 
-```python
-from personality_core.engine import PersonalityEngine
-from personality_core.engine_tuner import attach_tuner, route_by_tone
+| 变更 | 说明 |
+|------|------|
+| 移除 hermes 依赖 | `engine.py` 不再引用 hermes.state.agent，聊天流程简化 |
+| 修复 logger bug | `logger.warning` → `_get_logger().warning` |
+| Skill 统一入口 | `PersonalitySkill` 封装 train/chat/interact 常用流程 |
+| pyproject.toml 瘦身 | 移除 fastapi/uvicorn/gradio/matplotlib/jieba |
+| quickstart.py 重构 | 改为使用 skill module |
+| SKILL.md 重写 | 反映当前架构和接口 |
+| 清理 models/test_* | 移除测试产生的 joblib 文件 |
 
-engine = PersonalityEngine()
-engine.train(descriptions)
-attach_tuner(engine)              # 默认激活"渊", 挂载 tune_hyperparameters
-attach_tuner(engine, activate_now=False)  # 仅挂载, 不激活
+### 已知限制
 
-# 对话前可探测:
-suggested = route_by_tone(user_input)  # 'yuan' / 'baozao_niangmen' / 'qingyan' / 'nietzsche_devil' / None
-```
-
-### 切换隐藏
-
-CLI `src/personality_core/__main__.py:74` 已注释:
-```python
-# print(f"   → 切换到: {engine.current_persona.name}")
-```
-切换过程不向用户回显, 对话感受不到"被切号".
-
-### 情绪词映射
-
-完整映射见 [`references/tone_mapping.md`](references/tone_mapping.md).
-
-核心 13 条:
-- 暴躁娘们: 痛苦 / 算了 / 累了 / 没意思 / 烂透了
-- 清晏: 害怕 / 孤独 / 陪我 / 想哭
-- 尼采的魔鬼: 软弱 / 振作 / 站起来
-
-### 风格偏好 (User Style)
-
-- **简短**: 疲惫/不适时对话要短而温柔, 不堆术语
-- **温暖**: 不要冷分析, 哲学深度需带温度
-- **直接**: 失败立刻报, 不包装"安慰式"答案
-- **不要显式提示人格切换**: 用户偏好对话自然, 不希望看到"我换号了"
-
-详见 `scripts/activate_yuan.py` 的 REPL 模式与 `engine_tuner._TONE_MAP` 的实现.
+- ICA维度标签需要重新标定
+- Morph角度为正交分解近似值，不够精确
+- 记忆明文存储，无用户隔离
+- 数据集聚的是用词而非语义人格
+- README仍写512维，实际为384

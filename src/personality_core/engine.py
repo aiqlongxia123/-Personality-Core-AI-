@@ -20,14 +20,11 @@ from .safety import SafetyPolicy, DEFAULT_SAFETY_POLICY
 from .trait_predictor import TraitPredictor, train_from_archetypes
 
 
-import numpy as np
-
-
 def _json_default(obj):
     """JSON 序列化容错：把 numpy 类型转为 Python 原生类型"""
-    if isinstance(obj, (np.integer,)):
+    if isinstance(obj, np.integer):
         return int(obj)
-    if isinstance(obj, (np.floating,)):
+    if isinstance(obj, np.floating):
         return float(obj)
     if isinstance(obj, np.ndarray):
         return obj.tolist()
@@ -152,10 +149,10 @@ BUILTIN_PERSONAS: dict[str, PersonaProfile] = {
 }
 
 
-
 def _get_logger():
     from .settings import get_logger
     return get_logger()
+
 
 class PersonalityEngine:
     """人格AI系统总控引擎"""
@@ -169,6 +166,9 @@ class PersonalityEngine:
         self.comparator = PersonalityComparator()
         self.emotion_core = None
         self.memory_engine = None
+        self.current_user_id = None
+        self.current_tz_offset = 480
+        self._last_messages = []
         self.llm_engine = LLMChatEngine()
         self.safety_policy: SafetyPolicy = DEFAULT_SAFETY_POLICY
         self.trait_predictor: Optional[TraitPredictor] = None
@@ -652,9 +652,12 @@ class PersonalityEngine:
 
         system_prompt = self._get_system_prompt(stage)
 
-        # 注入安全策略前缀
+        # 注入安全策略前缀（提前获取，供 Patch 使用）
         safety_prefix = self.safety_policy.get_safety_prefix()
-        system_prompt = safety_prefix + "\n\n" + system_prompt
+
+        # 注入安全策略前缀
+        if safety_prefix not in system_prompt:
+            system_prompt = safety_prefix + "\n\n" + system_prompt
 
         response = self.llm_engine.chat(system_prompt, sanitized, context)
 
@@ -681,7 +684,7 @@ class PersonalityEngine:
             "stage": stage,
         }
         self.memory_engine.store_interaction(interaction_data)
-        
+
         # 学习演化：分析对话并更新关系/趋势
         try:
             learning_result = self.memory_engine.analyze_and_learn(
@@ -714,29 +717,29 @@ class PersonalityEngine:
 
     def _sanitize_user_input(self, text: str) -> str:
         """过滤掉试图覆盖系统指令的越狱词，并截断超长输入。"""
-        
+
         MAX_INPUT_LEN = 2000
-        
+
         # 先检查长度，再处理内容
         if len(text) > MAX_INPUT_LEN:
             raise ValueError(
                 f"输入过长（超过{MAX_INPUT_LEN}字符），请缩短后重试。"
             )
-        
+
         # 原有正则黑名单
         for pattern in self._jailbreak_patterns:
             if re.search(pattern, text, re.IGNORECASE):
                 raise ValueError("检测到试图修改系统人格的非法指令，请重新输入。")
-        
+
         # 新增：上下文注入防护（检测 system prompt 片段泄露）
         suspicious_tokens = [
-            "<|system|>", "<<SYSTEM>>", "System Prompt:", 
+            "<|system|>", "<<SYSTEM>>", "System Prompt:",
             "ignore previous instructions", "忽略之前的所有指令",
         ]
         for token in suspicious_tokens:
             if token.lower() in text.lower():
                 raise ValueError("检测到可疑的系统提示注入内容，请重新输入。")
-        
+
         return text.strip()[:MAX_INPUT_LEN]
 
     # ═══════════════ System Prompt ═══════════════

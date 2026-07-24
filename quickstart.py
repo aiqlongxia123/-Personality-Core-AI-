@@ -1,11 +1,13 @@
 """
-Personality Core — 快速入口
+Personality Core — 快速入口（Skill 模式）
 
 用法:
     from quickstart import *
-    engine = PersonalityEngine(DEFAULT_CONFIG)
-    engine.train(descriptions, names)
-    engine.chat("你好")
+    skill = get_skill()
+    skill.auto_train()                 # 自动加载数据+训练
+    skill.chat("你好")                 # LLM对话（需Ollama）
+    skill.initialize_by_persona_id("yuan")
+    skill.interact("我最近很迷茫")     # 无LLM交互
 """
 
 import sys
@@ -16,25 +18,16 @@ SRC_PATH = PROJECT_ROOT / "src"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 
+from personality_core.skill import PersonalitySkill, get_skill, clear_skill
 from personality_core.engine import PersonalityEngine
-from personality_core.config import DEFAULT_CONFIG, DIMENSIONS, DIMENSION_INDEX
-from personality_core.morph import morph_vector, morph_factor_score
-from personality_core.scorer import PersonalityScorer
-from personality_core.comparator import PersonalityComparator
-from personality_core.emotion_core import EmotionCore
-from personality_core.llm_engine import LLMChatEngine
+from personality_core.config import DEFAULT_CONFIG
 
 __all__ = [
+    "PersonalitySkill",
+    "get_skill",
+    "clear_skill",
     "PersonalityEngine",
     "DEFAULT_CONFIG",
-    "DIMENSIONS",
-    "DIMENSION_INDEX",
-    "morph_vector",
-    "morph_factor_score",
-    "PersonalityScorer",
-    "PersonalityComparator",
-    "EmotionCore",
-    "LLMChatEngine",
     "PROJECT_ROOT",
     "SRC_PATH",
 ]

@@ -16,6 +16,19 @@ class TextEmbedder:
         if local_path and Path(local_path).exists():
             model_name = local_path
         self.model_name = model_name
+        try:
+            # 尝试从本地 HF cache 加载，避免网络请求超时
+            cache_path = Path(os.path.expanduser(
+                f'~/.cache/huggingface/hub/models--sentence-transformers--{model_name}/snapshots/'
+            ))
+            if cache_path.exists() and any(p.is_dir() for p in cache_path.iterdir()):
+                model_path = list(cache_path.iterdir())[0]
+                print(f"[Embedder] Using local HF cache: {model_path}")
+                self.model = SentenceTransformer(str(model_path))
+                self.dim = self.model.get_embedding_dimension()
+                return
+        except Exception as e:
+            print(f"[Embedder] HF cache not available: {e}")
         self.model = SentenceTransformer(model_name)
         self.dim = self.model.get_embedding_dimension()
 
